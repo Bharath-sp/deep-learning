@@ -1,0 +1,189 @@
+= Gradient Descent Method =
+:doctype: book
+:author: Bharath Kumar S P
+:email: bharath030195@gmail.com
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Gradient Descent Method ==
+The parameters of an ANN model are determined through the training process. Initially, the parameters are initialized randomly. Then the parameters are iteratively updated in the direction that the loss function becomes smaller. Gradient descent is a widely used method for updating parameters.
+
+As the parameters are updated, the loss function value becomes smaller, so the predicted value gets closer to the actual target value.
+
+*Example 01:*
+
+Say our objective (or loss) function is
+
+[stem]
+++++
+\min_{w} L(w) = \min_{w} (w-2)^2
+++++
+
+On differentiating this equation with respect to stem:[w] and finding the point where the slope is 0, it is easy to see that the optimal stem:[w^*] is
+
+[stem]
+++++
+\frac{\partial L}{\partial w} = 0 \implies 2w^*-4 = 0 \implies w^* = 2
+++++
+
+Solving using this method is difficult when we have more variables. In such cases, numerical analysis is used to solve this problem. Let's use gradient descent to solve this. Let's see for the 1D case, stem:[L] is a function of only one variable.
+
+. Initially set stem:[w] to a random value. Let stem:[w_t = 0.5]. The loss function value is stem:[L(w_t) = 2.25].
+. Find the slope of stem:[L] at that point, stem:[\frac{\partial L}{\partial w} \big|_{w= 0.5} = 2w-4 = -3 ].
+.. If the slope is negative, the stem:[w^*] we are looking for is on the right side.
+.. If the slope is positive, the stem:[w^*] we are looking for is on the left side.
+
+. Update the parameter using the formula 
++
+[stem]
+++++
+w_{t+1} = w_t - \alpha \frac{\partial L}{\partial w} \bigg|_{w_t}
+++++
++
+where stem:[\alpha] is the positive learning rate (a hyperparameter) which determines how much stem:[w] increases or decreases.
++
+[stem]
+++++
+w_{t+1} = 0.5 - (0.25 * -3) = 1.25
+++++
++
+Now the loss function value is stem:[L(w_{t+1}) = 0.56]. The loss value has decreased.
+
+By repeating this process until the parameter stem:[w] no longer changes, we find the optimal stem:[w^*].
+
+image::.\images\gradient_descent_01.png[align='center', 400, 300]
+
+*Example 02:*
+
+Say our objective (or loss) function is
+
+[stem]
+++++
+\min_{w_1, w_2} L(w_1, w_2) = \min_{w_1, w_2} (w_1-2)^2 + (w_2 -3)^2
+++++
+
+. Let stem:[(w_{1,t}, w_{2,t}) = (3,2)] be the initial value for the parameters.
+. Find the gradient at the point.
++
+[stem]
+++++
+\begin{align*}
+\nabla L (w_1, w_2) & = \left( \frac{\partial L}{\partial w_1}, \frac{\partial L}{\partial w_2}\right) \\
+\nabla L (w_1, w_2) & = (2w_1-4, 2w_2 -6) \implies \nabla L (3, 2) = (2, -2)
+\end{align*}
+++++
+
+. Update the parameter using the formula 
++
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t} \\
+w_{2, t}
+\end{bmatrix} - \alpha \begin{bmatrix}
+\frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_1} \\
+\frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+3 \\
+2
+\end{bmatrix} - 0.25 \begin{bmatrix}
+2 \\
+-2
+\end{bmatrix} = \begin{bmatrix}
+2.5 \\
+2.5
+\end{bmatrix}
+++++
+
+image::.\images\gradient_descent_02.png[align='center', 400, 300]
+
+There are so many paths to reach the optimal point. So, a path optimization process is required. In neural networks, the actual shape of stem:[L] is much more complex than this due to many variables and non-linear activation functions. The actual shape of stem:[L] will not be convex.
+
+There will be many points in weight space at which the gradient will be 0, i.e, there will be so many critical points. Indeed, we see that for any point stem:[\mathbf{w}] that is a local minimum, there will be other points in weight space that are equivalent minima. For instance, in a two-layer network with stem:[M] hidden units each point in weight space is a member of a family of stem:[M!2^M] equivalent points.
+
+For a successful application of neural networks, it may not be necessary to find the global minimum, but it may be necessary to compare several local minima in order to find a sufficiently good solution.
+
+== Types of Gradient Descent ==
+In practice, we will have a dataset with stem:[N] data points. We have target stem:[y] and predicted stem:[\hat{y}] which is obtained with randomly initialized parameter values. For the given stem:[y] and stem:[\hat{y}], we can compute the loss function value.
+
+* In regression analysis, the MSE is used as the loss function.
++
+[stem]
+++++
+L(\mathbf{w},b) = \frac{1}{N} \sum_{i=1}^N \frac{1}{2} (y_i - \hat{y}_i)^2
+++++
+
+* In binary classification, binary cross-entropy (BCE) is used.
++
+[stem]
+++++
+L(\mathbf{w},b) = - \frac{1}{N} \sum_{i=1}^N [y_i \log(\hat{y}_i) + (1-y_i) \log (1-\hat{y}_i)]
+++++
+
+* In multiclass classification, cross-entropy (CE) is used.
++
+[stem]
+++++
+L(\mathbf{w},b) = - \frac{1}{N} \sum_{i=1}^N \sum_{k=1}^C y_{i,k} \log(\hat{y}_{i,k})
+++++
++
+Where stem:[C] is the number of classes in stem:[y], and it is the number of neurons in the output layer.
+
+Now our goal is to update the parameters stem:[\mathbf{w}] and stem:[b] such that the loss function value will be minimum. We use gradient descent to do this. When we have two parameters, our loss surface can be 
+
+image::.\images\loss_function.png[align='center', 400, 300]
+
+NOTE: The loss function is plotted against the parameters. The shape of stem:[L] will not be convex due to many variables and non-linear activation functions in NN.
+
+There are three types of gradient descent that we can use.
+
+. *Stochastic Gradient Descent (SGD)*:
++
+Randomly select data point one by one, compute the loss for each data point, and update the parameters via gradient descent. If we iterate over the entire dataset once, that is, select stem:[N] data points, the parameters are updated stem:[N] times per iteration. Convergence may be fast because the parameters are updated frequently. However, because the loss can fluctuate greatly depending on the data selected, convergence may be unstable.
+
+. *Batch Gradient Descent (GD or BGD)*:
++
+Compute the average loss for all data points at once and update the parameters once. The parameters are updated once per iteration. Convergence may be slow because parameters are updated infrequently. However, since the average loss is stable, convergence will also be stable. In addition, if the data is very large, it may not be possible to store it all in memory at once.
+
+. *Mini-batch Gradient Descent*:
++
+Shuffle the dataset well. Split the shuffled dataset into multiple datasets to compute the loss for each subset and update the parameters. If the number of subsets is stem:[m] with stem:[k] data points in each subset, the parameters are updated stem:[m] times in one iteration. Mini-batch gradient descent aims to find a balance between the speed of stochastic gradient descent and the stability of batch gradient descent. It is most widely used in deep learning.
+
+image::.\images\types_of_gd.png[align='center', 500, 400]
+
+== Finding Gradients ==
+There are two ways in which we can find the gradients: Automatic differentiation (using error backpropagation) and numerical differentiation.
+
+=== Automatic Differentiation ===
+Automatic differentiation allows us to obtain the accurate gradients of the loss with respect to each parameter.
+
+For the output layer of a neural network, we know the desired output stem:[y] and the predicted output stem:[\hat{y}], so we can define the error and the loss. The error (of a single data point) from the output layer can be defined as stem:[e=y-\hat{y}] and loss as stem:[L(\mathbf{w},b) = \frac{1}{2} (y-\hat{y})^2]. We can then easily calculate the gradients with respect to the parameters associated with the output layer, stem:[\mathbf{W}_o] and stem:[\mathbf{b}_o]. And use these gradients to adjust these weights and biases using the gradient descent method.
+
+image::.\images\find_gradients.png[align='center', 600, 400]
+
+However for neurons in the hidden layers, we cannot directly define the error and loss because we do not know the desired output from these neurons. So how do we update the parameters stem:[\mathbf{W}_h] and stem:[\mathbf{b}_h]?
+
+The error from the output layer can be propagated backward to the hidden layers. This is the error backpropagation algorithm. Using the propagated error, we can obtain the gradients with respect to the parameters of the hidden layer. We can then use these gradients to adjust the weights and biases of the hidden layer using the gradient descent method.
+
+=== Numerical Differentiation ===
+Numerical differentiation allows us to obtain approximate gradients of the loss with respect to each parameter. Neural networks can be trained roughly using numerical differentiation, without using error backpropagation. Instead of finding the exact gradient, we can find an approximate gradient and use gradient descent to adjust the parameters.
+
+* *Forward difference approximation:*
++
+[stem]
+++++
+\frac{\partial L}{\partial w_1} \approx \frac{L(w_1+h, w_2, \dots, b)-L(w_1, w_2, \dots, b)}{h}
+++++
+
+* *Center difference approximation:*
++
+[stem]
+++++
+\frac{\partial L}{\partial w_1} \approx \frac{L(w_1+h, w_2, \dots, b)-L(w_1-h, w_2, \dots, b)}{2h}
+++++
++
+This method is slightly more accurate.

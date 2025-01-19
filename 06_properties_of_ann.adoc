@@ -1,0 +1,67 @@
+= Properties of ANN =
+:doctype: book
+:author: Bharath Kumar S P
+:email: bharath030195@gmail.com
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Linearity vs Non-linearity of ANN ==
+A single layer perceptron (SLP) is a neural network consisting only of an input layer and an output layer. There is no hidden layer. SLP can learn only linear functions. For classification, only linear separation is possible. For regression, only linear regression is possible.
+
+A multi-layer perceptron (MLP) is a neural network with hidden layers. It can learn linear and non-linear functions.
+
+image::.\images\slp_vs_mlp.png[align='center', 500, 400]
+
+With a multi-layer perceptron, non-linear problems cannot be solved if a linear activation function is used in the hidden layers. This is because multi-layer neural networks with linear activation functions in the hidden layers behave like single layer neural networks. This follows from the fact that the composition of successive linear transformations is itself a linear transformation, i.e. linear function of a linear function is basically a linear function.
+
+*Proof:*
+
+The output of a multi-layer NN is
+
+[stem]
+++++
+\begin{align*}
+\hat{y} & = f_o(f_h(\mathbf{X} \cdot \mathbf{W}_h + \mathbf{b}_h) \cdot \mathbf{W}_o + \mathbf{b}_o) \\
+\hat{y} & = f_o((\mathbf{X} \cdot \mathbf{W}_h + \mathbf{b}_h) \cdot \mathbf{W}_o + \mathbf{b}_o) && \text{if } f_h(\mathbf{x})=\mathbf{x}\\
+\hat{y} & = f_o(\mathbf{X} \cdot \mathbf{W}_h \cdot \mathbf{W}_o + \mathbf{b}_h \cdot \mathbf{W}_o + \mathbf{b}_o) \\
+\hat{y} & = f_o(\mathbf{X} \cdot \mathbf{W} + \mathbf{b}) && \mathbf{W} = \mathbf{W}_h \cdot \mathbf{W}_o, \mathbf{b} = \mathbf{b}_h \cdot \mathbf{W}_o + \mathbf{b}_o   \\ 
+\end{align*}
+++++
+
+This equation is equivalent to the output of a single-layer NN. So if we use linear activation function in the hidden layers, we loose the benefit of using the hidden layers.
+
+== Vanishing Gradient ==
+If hidden layers use non-linear activation functions, such as sigmoid or hyperbolic tangent, the gradients of loss function may not propagate properly to lower layers. This is called the vanishing gradient problem. The maximum value of the derivative of the sigmoid function is 0.25. During backpropagation, the gradient is repeatedly multiplied by values less than 0.25, which can cause it to decrease exponentially or vanish.
+
+Say we have a neural network with two hidden layers as below. Each parameter is updated through gradient descent method.
+
+[stem]
+++++
+w \leftarrow w - \alpha \frac{\partial L}{\partial w}
+++++
+
+where stem:[\frac{\partial L}{\partial w}] is the gradient of the loss function. By backpropagation, the loss in the output layer is propagated to the hidden layers. And the parameters in the hidden layers are updated using the formula below
+
+image::.\images\vanishing_gradient.png[align='center', 500, 400]
+
+* We see that the second term on RHS is multiplied by the derivative of stem:[f_{h,2}], which is the activation function of the second hidden layer. The maximum value of the derivative of the sigmoid function is 0.25. If stem:[f_{h,2}] is sigmoid, its maximum value is 0.25, and let's say on average it is 0.1.
+
+* In the first layer, the derivative of stem:[f_{h,1}] is multiplied once more. If stem:[f_{h,1}] is also sigmoid, its maximum value is 0.25, and let's say on average it is 0.1.
+
+If there were 5 hidden layers in this network, in the bottom layer, 0.1 is multiplied 5 times. As there are more hidden layers, the gradients become very small. If the second term is very small, the update of the parameter will not be proper.
+
+To alleviate this problem, ReLU is widely used in hidden layers. ReLU is a non-linear function that combines two linear functions. The gradient of ReLU is either 0 or 1. If it is 1, the gradient propagates well to the lower layers. If it is 0, the gradient will not propagate. However, with ReLU, the output value of some neurons in the hidden layer will become 0, causing some of the dropout and regularization effects.
+
+In the worst case, if the output of all the neurons in the hidden layer becomes 0, the gradient cannot propagate to lower layers. This is called the *dying ReLU* problem. This problem may appear if the learning rate stem:[\alpha] is large, or the bias is large and negative. This is because they make the weights negative and the output of ReLU 0.
+
+[stem]
+++++
+\mathbf{W}_{h,1} \leftarrow \mathbf{W}_{h,1} - \alpha \, \_\_ \, f_o' \, f_{h,2}' \, f_{h,1}'
+++++
+
+Say stem:[f_{h,1}, f_{h,2}] are ReLU, their derivative is either 0 or 1. And when the stem:[\alpha \, \_\_ \, f_o'] is also positive and large, the term stem:[\alpha \, \_\_ \, f_o' \, f_{h,2}' \, f_{h,1}'] will be greater than current stem:[\mathbf{W}_{h,1}], thus the updated stem:[\mathbf{W}_{h,1}] will be negative. If the bias stem:[\mathbf{b}_{h,1}] is also large negative and the elements of stem:[\mathbf{X}] are all positive, then the input to ReLU  stem:[(\mathbf{X \cdot \mathbf{W}_{h,1} + \mathbf{b}_{h,1}})] will be negative. Hence the outputs from this hidden layer will be all 0.
+
+To alleviate this problem, we can try lowering the learning rate and preventing the bias from becoming large. We can also try using the leaky ReLU or softplus activation function.
+
+image::.\images\activations_derivatives.png[align='center', 600, 500]

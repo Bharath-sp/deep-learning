@@ -1,0 +1,218 @@
+= Activation and Loss Functions =
+:doctype: book
+:author: Bharath Kumar S P
+:email: bharath030195@gmail.com
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+We can use neural networks to perform regression, binary classification, multi-label classification, and multi-class classification. But we have to choose a suitable output unit activation function and corresponsing error function.
+
+== Regression ==
+In regression curve fitting, given a training set comprising a set of input vectors stem:[\{\mathbf{x}_n\}], where stem:[n=1,\dots, N], together with a corresponding set of target vectors stem:[\{\mathbf{t}_n\}], we minimise the error function
+
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \| \mathbf{y}(\mathbf{x}_n, \mathbf{w}) - \mathbf{t}_n \|^2
+++++
+
+NOTE: Here the output is a vector stem:[\mathbf{t}] with stem:[K] elements. stem:[n] denotes that it is for a given data point stem:[\{\mathbf{x}_n\}].
+
+This is a natural choice of error function when dealing with regression problems. Probabilistic interpretation provides us motivation for the choice of output unit non-linearity and the choice of error function.
+
+For the moment we consider a single target variable stem:[t] that can take any real value. We assume that the true output stem:[t] has a Gaussian distribution with an stem:[\mathbf{x}] dependent mean, stem:[t | \mathbf{x} \sim \mathcal{N}(\mathbf{x}^\top \mathbf{w}, \sigma^2)]
+
+[stem]
+++++
+p(t \,|\, \mathbf{x} , \mathbf{w}, \sigma) = \frac{1}{\sigma \sqrt{2\pi}} \text{exp} \left( - \frac{(t - \mathbf{x}^\top \mathbf{w})^2}{2\sigma^2} \right)
+++++
+
+This represents, "for a given data point stem:[\mathbf{x}] and parameters stem:[\mathbf{w}], how likely it is to observe stem:[t]?". We know stem:[(\mathbf{x},t)] from our training data set.
+
+Let consider stem:[\sigma^2 = \frac{1}{\beta}], where stem:[\beta] is the precision (inverse variance) of the Gaussian noise.
+
+Given a data set of stem:[N] i.i.d observations stem:[\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N \}], along with corresponding target values stem:[\mathbf{t} = \{t_1, \dots, t_N\}], we can construct the likelihood function
+
+[stem]
+++++
+L(\mathbf{w}) = p(\mathbf{t} \,|\, \mathbf{X} , \mathbf{w}, \beta) = \prod_{n=1}^N p(t_n \,|\, \mathbf{x}_n , \mathbf{w}, \beta)
+++++
+
+On taking the negative logarithm, we obtain the MSE error function
+
+[stem]
+++++
+- LL(\mathbf{w}) = \frac{\beta}{2} \sum_{n=1}^N \{ t_n - y(\mathbf{x}_n, \mathbf{w}) \}^2 -\frac{N}{2} \ln \beta + \frac{N}{2} \ln (2\pi)
+++++
+
+Consider the determination of optimal stem:[\mathbf{w}]: maximizing the likelihood function is equivalent to minimizing the sum-of-squares error function given (as other terms are constant)
+
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \{ t_n - y(\mathbf{x}_n, \mathbf{w}) \}^2
+++++
+
+Here we didn't transform the activation stem:[a] (the linear combination in the last layer) using any non-linear function, the activation itself is considered as our stem:[y(\mathbf{x}_n, \mathbf{w})]. So for regression in neural networks:
+
+* Output unit activation function: Identity function. stem:[y_k=a_k] for stem:[k = 1, \dots, K] target variables.
+* Error function: sum-of-squares error function
++
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \| \mathbf{y}(\mathbf{x}_n, \mathbf{w}) - \mathbf{t}_n \|^2 = E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \| \mathbf{y}_n - \mathbf{t}_n \|^2
+++++
+
++
+[stem]
+++++
+\mathbf{y} =
+\begin{bmatrix}
+y_1 \\
+y_2 \\
+\vdots \\
+y_K
+\end{bmatrix} \hspace{1cm}
+
+\mathbf{t} =
+\begin{bmatrix}
+t_1 \\
+t_2 \\
+\vdots \\
+t_K
+\end{bmatrix}
+++++
++
+stem:[n] subscript denotes that it is output from the input pattern stem:[\mathbf{x}_n].
+
++
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \sum_{k=1}^K \{y_{nk} - t_{nk}\}^2
+++++
+
++
+* stem:[y_{nk}] denotes stem:[y_k (\mathbf{x}_n, \mathbf{w})] - the predicted output for the stem:[k]th target variable for the input data point stem:[\mathbf{x}_n].
+* stem:[t_{nk}] denotes the true output for the stem:[k]th target variable for the input data point stem:[\mathbf{x}_n].
+
+== Binary Classification ==
+In the case of binary classification, we have a single target variable stem:[t] that takes two values 1 and 0 representing class stem:[\mathcal{C}_1] and class stem:[\mathcal{C}_2] respectively.
+
+Consider the output activation function as a logistic sigmoid:
+
+[stem]
+++++
+y(\mathbf{x}, \mathbf{w}) = \sigma(a) = \frac{1}{1 + \text{exp}(-a)}
+++++
+
+so that stem:[0 \leq y(\mathbf{x}, \mathbf{w}) \leq 1 ]. stem:[a] is the last layer linear combination of the previous layer outputs. We interpret this result stem:[y(\mathbf{x}, \mathbf{w})] as the probability of the data point stem:[\mathbf{x}] belonging to class stem:[\mathcal{C}_1]. To be specific, 
+
+* stem:[y(\mathbf{x}, \mathbf{w})] is stem:[p(\mathcal{C}_1 \, | \, \mathbf{x})].
+* stem:[1- y(\mathbf{x}, \mathbf{w})] is stem:[p(\mathcal{C}_2 \, | \, \mathbf{x})].
+
+*Probabilistic Interpretation:*
+
+We assume that the true output stem:[t] has a Bernoulli distribution with stem:[y(\mathbf{x}, \mathbf{w})] as the parameter.
+
+[stem]
+++++
+p(t | \mathbf{x}, \mathbf{w}) = y(\mathbf{x}, \mathbf{w})^t \{ 1- y(\mathbf{x}, \mathbf{w}) \}^{1-t}
+++++
+
+This represents, "for a given data point stem:[\mathbf{x}] and parameters stem:[\mathbf{w}], how likely it is to observe stem:[t]?". We know stem:[(\mathbf{x},t)] from our training data set.
+
+Given a data set of stem:[N] i.i.d observations stem:[\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N \}], along with corresponding target values stem:[\mathbf{t} = \{t_1, \dots, t_N\}], we can construct the likelihood function
+
+[stem]
+++++
+\begin{align*}
+L(\mathbf{w}) & = \prod_{n=1}^N p(t_n \,|\, \mathbf{x}_n , \mathbf{w}) \\
+& = \prod_{n=1}^N y(\mathbf{x}_n, \mathbf{w})^{t_n} \{ 1- y(\mathbf{x}_n, \mathbf{w}) \}^{1-t_n} = \prod_{n=1}^N y_n^{t_n} \{ 1- y_n \}^{1-t_n}
+\end{align*}
+++++
+
+Negative log likelihood is then given by
+
+[stem]
+++++
+- LL(\mathbf{w}) = - \sum_{n=1}^N \{t_n \, \ln \, y_n + (1-t_n) \, \ln \, (1-y_n) \}
+++++
+
+This is nothing but the cross-entropy error function:
+
+[stem]
+++++
+E(\mathbf{w}) = - \sum_{n=1}^N \{t_n \, \ln \, y_n + (1-t_n) \, \ln \, (1-y_n) \}
+++++
+
+So in the case of binary classification, the natural choice of output activation function can be *logistic sigmoid* and error function can be *cross-entropy* error function.
+
+== Multi-label Classification ==
+If we have stem:[K] separate binary classifications to perform, then we can use a network having stem:[K] outputs each of which has a *logistic sigmoid activation* function. Associated with each output is a binary class label stem:[t_k \in \{0,1\}], where stem:[k=1, \dots, K]. If we assume that the class labels are independent, given the input vector, then the conditional distribution of the targets is
+
+[stem]
+++++
+p(\mathbf{t} | \mathbf{x}, \mathbf{w}) = \prod_{k=1}^K y_k(\mathbf{x}, \mathbf{w})^{t_k} \{ 1- y_k(\mathbf{x}, \mathbf{w}) \}^{1-t_k}
+++++
+
+Taking the negative logarithm of the corresponding likelihood function then gives the following error function
+
+[stem]
+++++
+E(\mathbf{w}) = - \sum_{n=1}^N \sum_{k=1}^K \{t_{nk} \, \ln \, y_{nk} + (1-t_{nk}) \, \ln \, (1-y_{nk}) \}
+++++
+
+* stem:[y_{nk}] denotes stem:[y_k (\mathbf{x}_n, \mathbf{w})] - the predicted output for the stem:[k]th target variable for the input data point stem:[\mathbf{x}_n].
+* stem:[t_{nk}] denotes the true output for the stem:[k]th target variable for the input data point stem:[\mathbf{x}_n].
+
+== Multi-class Classification ==
+Here each input is assigned to one of stem:[K] mutually exclusive classes. The binary target variables stem:[t_k \in \{0,1\}] have a 1-of-stem:[K] coding scheme indicating the class, and the network outputs are interpreted as stem:[y_k(\mathbf{x}, \mathbf{w}) = p(t_k =1 \, | \, \mathbf{x} )] leading to the following error function
+
+[stem]
+++++
+E(\mathbf{w}) = - \sum_{n=1}^N \sum_{k=1}^K t_{nk} \, \ln \, y_{nk}
+++++
+
+We see that the output unit activation function, which corresponds to the canonical link, is given by a non-linear function called *softmax function*
+
+[stem]
+++++
+y_k(\mathbf{x}, \mathbf{w}) = \frac{\text{exp}(a_k(\mathbf{x}, \mathbf{w}))}{\sum_{j=1}^K \text{exp}(a_j(\mathbf{x}, \mathbf{w}))}
+++++
+
+Which satisfies stem:[0 \leq y_k \leq 1] and stem:[\sum_k y_k =1]. This is known as categorical cross-entropy loss function.
+
+Here the confidences stem:[a_k] that an input belong to classes stem:[k=1, \dots, K], where each stem:[a_k] can range between stem:[(-\infty, \infty)] are converted to probabilities using the softmax function.
+
+NOTE: On applying softmax, we have to look at all the output activations stem:[a_1, \dots, a_K] because of the normalization constant in the denominator of stem:[y_k(\mathbf{x}, \mathbf{w})].
+
+== Empirical Risk Minimization ==
+In the supervised learning setting, assume we are given a training data stem:[\{(\mathbf{x}_1, t_1), \dots, (\mathbf{x}_N, t_N) \}]. Given this data, we would like to estimate a predictor stem:[f(\cdot; \boldsymbol{\theta}) : \mathbb{R}^D \rightarrow \mathbb{R}]. We hope to be able to find optimal parameters such that we fit the data well.
+
+[stem]
+++++
+f(\mathbf{x}_n, \boldsymbol{\theta}^* ) \approx t_n \text{ for all } n=1, \dots, N.
+++++
+
+Depending on the nature of the output labels, we choose our function stem:[f] from a class of functions such as from the set of affine functions, non-linear functions, etc. Given the class of functions, we want to search for a good predictor. But how do we measure the goodness of a predictor, i.e., how well the chosen predictor fits the training data?
+
+Consider the true label stem:[t_n] for a particular data point, and the corresponding prediction stem:[y_n] that we make based on stem:[\mathbf{x}_n]. To define what it means to fit the data well, we need to specify a *loss function* stem:[l(t_n, y_n)].
+
+The loss function takes stem:[t_n] and stem:[y_n] as inputs and produces a non-negative number, referred to as the loss, measuring how much error we made on this particular prediction.
+
+We are interested in finding a predictor stem:[f] (which boils down to finding a good parameter vector stem:[\boldsymbol{\theta}^*]) that minimizes the expected risk
+
+[stem]
+++++
+\mathbf{R}_{\text{true}}(f) = \mathbb{E}_{\mathbf{x},t}[ l(t, f(\mathbf{x})) ]
+++++
+
+Where stem:[t] is the true label, stem:[f(\mathbf{x})] is the prediction based on the data point stem:[\mathbf{x}]. This is the true risk if we had access to an infinite amount of data. The expectation is over the infinite set of all possible data and labels.
+
+In practice, we are just given a training set stem:[\mathbf{X} = [\mathbf{x}_1, \dots, \mathbf{x}_N \]^\top ] and a label vector stem:[\mathbf{t} = [t_1, \dots, t_N\]]. As the data points are i.i.d, we can estimate the risk empirically by taking the mean of the loss on the training data
+
+[stem]
+++++
+\mathbf{R}_{\text{emp}}(f, \mathbf{X}, \mathbf{t}) = \frac{1}{N} \sum_{n=1}^N l(t_n, y_n)
+++++
+

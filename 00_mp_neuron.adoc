@@ -1,0 +1,77 @@
+= MP Neuron =
+:doctype: book
+:author: Bharath Kumar S P
+:email: bharath030195@gmail.com
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+The basic bulding block of deep neural networks is the artificial neuron. We try to emulate human brain. Human brain has around 80-100 billion neurons. It is a network of many neurons. Different parts of our brain specializes in different inference mechanisms, for example, some of them are responsible for motor skills, some are for analytical skills, artistic skills, etc.
+
+In deep learning, we try to model this complex information procesing system from our understanding of the humain brain.
+
+== What is a MP Neuron? ==
+We first model the basic unit, which is a neuron. In 1943, McCulloch and Pitts (MP) proposed a threshold logic unit which is the first mathematical model for a neuron. This is called as MP neuron. This is a very simple model whose inputs and output are Boolean.
+
+image::.\images\mp_neuron_01.png[align='center', 300, 200]
+
+The center part is the neuron, which has a threshold logic unit. If the sum of the inputs is greater than a threshold stem:[\theta], the output is 1. The neuron gets activated and sends its own signal to other neurons. If the sum of the inputs is less than stem:[\theta], the neuron doesn't send any signal, it outputs 0. This can be modelled as stem:[y = f(x) = 1 \left( \sum_{i=1}^n x_i \geq \theta \right)].
+
+The inputs stem:[x_1, \dots, x_n] are boolean signals, each taking values 0 or 1. The input signals can be of excitatory or inhibitory in nature. A neuron can receive some excitatory and some inhibitory signals.
+
+*Excitatory Signals:*
+
+These signals excite the neuron toward possibly sending its own signal. When a neuron receives an excitatory signal, 1 is sent to the neuron. When a neuron does not receive an excitatory signal, 0 is sent to the neuron.
+
+*Inhibitory Signals:*
+
+These signals inhibit the neuron from sending a signal. When a neuron receives an inhibitory signal, it becomes less excited. In effect, inhibitory signals subtract from the total of the excitatory signals, making the neuron more relaxed, and moving the neuron away from its threshold.
+
+* When a neuron receives an inhibitory signal, -1 is sent to the neuron (this  value reduces the activity of the neuron).
+* When a neuron doesn't receive an inhibitory signal, 0 is sent to the neuron (this value reflects no inhibitory action).
+
+We can make signals either excitatory or inhibitory, and we can change the threshold. By making different choices for these adjustments, we can make MP neurons that produce a variety of results.
+
+*Example 01:*
+
+Say we want to model stem:[f(x,y) = x.y'] using a MP neuron. Note stem:[.] is the logical AND operator.
+
+image::.\images\mp_neuron_2.png[align='center', 500, 300]
+
+stem:[X] and stem:[Y] are our inputs and we need to realize stem:[X.Y']. Say we set stem:[X] as excitatory and stem:[Y] as inhibitory signals.
+
+* When stem:[x=0] and stem:[y=0], the neuron receives stem:[0+0=0] and it should output 0. As the summation is 0 here and our neuron should not get activated, the threshold should be stem:[\geq 0].
+* When stem:[x=0] and stem:[y=1], the neuron receives stem:[0+(-1)=-1] and it should output 0.
+* When stem:[x=1] and stem:[y=0], the neuron receives stem:[1+0=1] and it should output 1. As the summation is 1 here and our neuron should get activated, the threshold should be stem:[\leq 1].
+* When stem:[x=1] and stem:[y=1], the neuron receives stem:[1+(-1)=0] and it should output 0.
+
+So the threshold can be set to 1 to realize the function stem:[X.Y'].
+
+The design principle of MP neurons can be modified to give inhibitory inputs dominant effect in the neuron's logic. This simplifies the logic for specific decision-making tasks. In this design, if an inhibitory input is active (i.e., its value is 1), it overrides all other excitatory inputs and forces the output stem:[y] to be 0. This is a logical rule added to emphasize the dominance of inhibitory signals in the neuron's function.
+
+In this design, an MP neuron with one excitatory and one inhibitory input with a threshold set to 0 acts as
+
+image::.\images\mp_neuron_03.png[align='center', 700, 500]
+
+When the inhibitory input is set, the summation and processing are not required. The output stem:[y] will be 0 irresepctive of other inputs.
+
+*Example 02:*
+
+With our new design principle, say we want to model the below relationship using a MP neuron.
+
+image::.\images\mp_neuron_04.png[align='center',  500, 300]
+
+* For stem:[x_1=0] and stem:[x_2=0], the neuron should get activated. The summation here is 0, so the threshold should be stem:[\leq 0].
+* For stem:[x_1=1] and stem:[x_2=0], the neuron shouldn't get activated. The summation here is 1, so the threshold should be stem:[\geq 1]. This condition conflicts with our previous condition. So let's alter the nature of the input. On making the signal stem:[x_1] inhibitory, the output in this case can be made 0.
+* For stem:[x_1=0] and stem:[x_2=1], the neuron shouldn't get activated. As the inhibitory signal is not set, we have to process it. The summation here is 1, so the threshold should be stem:[\geq 1]. This condition conflicts with our first condition. On making the signal stem:[x_2] inhibitory, the output in this case can be made 0.
+* For stem:[x_1=1] and stem:[x_2=1], the neuron shouldn't get activated. The input signals are inhibitory, so the output is 0.
+
+Thus we can model this relation with the neuron (on the right side) with a threshold value of 0. This is infact X NOR Y logic function.
+
+=== What one unit does? ===
+The unit has a threshold logic unit which does stem:[\sum_i x_i \geq \theta]. It sets a threshold or boundary stem:[\sum_i x_i = \theta]. For a two variable case, this will be a line stem:[x_1 + x_2 = 0]. For three variables, it will a plane. For more than three, it will be a hyperplane. It basically creates a linear separation in the input space, i.e., a linear classifier.
+
+image::.\images\mp_neuron_05.png[align='center',  300, 300]
+
+There is *no learning* here. It is a heuristic approach, not an algorithmic. We try different inputs and outputs, and set the threshold accordingly to realize a function. stem:[\theta] is the only parameter in this model. We could do hit and trial to find what threshold works only when the number of inputs is less and they take only binary values.
