@@ -1,0 +1,167 @@
+= Automatic Differentiation =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== A Primer on Calculus ==
+The core concept used in the backpropagation algorithm is the chain rule of differential calculus.
+
+*Chain Rule:*
+
+For a nested function, say stem:[y=f(g(x))]
+
+[stem]
+++++
+\frac{dy}{dx}  = \frac{\partial f}{\partial g(x)} \cdot \frac{d g(x)}{d x} = f'(g(x))\cdot g'(x)
+++++
+
+This gives us the rate of change of stem:[y] with respect to stem:[x]. Then, the actual change in stem:[y] for a small change in stem:[x] can be given by
+
+[stem]
+++++
+\Delta y = \frac{dy}{dx} \cdot \Delta x = \frac{\partial f}{\partial g(x)} \cdot \frac{d g(x)}{d x} \cdot \Delta x 
+++++
+
+*Distributed Chain Rule:*
+
+Say stem:[y=f(x_1, \dots, x_n)]. Then stem:[\frac{\partial y}{\partial x_1} = \frac{\partial f}{\partial x_1}], which is computed by keeping all the other variables stem:[x_2, \dots, x_n] constant.
+
+When stem:[y=f(g_1(x), g_2(x) \dots, g_M(x))]. Here when we change stem:[x], stem:[g_1(x)] changes which inturn changes stem:[y], , stem:[g_2(x)] changes which inturn changes stem:[y], etc. So we need to account for all the changes caused to stem:[y] on changing stem:[x].
+
+[stem]
+++++
+\frac{dy}{dx} =  \frac{\partial f}{\partial g_1(x)}  \cdot \frac{d g_1(x)}{dx} + \frac{\partial f}{\partial g_2(x)}  \cdot \frac{d g_2(x)}{dx} + \dots + \frac{\partial f}{\partial g_M(x)}  \cdot \frac{d g_M(x)}{dx}
+++++
+
+image::.\images\chain_rule_01.png[align='center', 400, 300]
+
+The change in stem:[y] for a small change in stem:[x] can be given by
+
+[stem]
+++++
+\begin{align*}
+\Delta y & = \frac{dy}{dx} \cdot \Delta x \\
+& = \left[ \frac{\partial f}{\partial g_1(x)}  \cdot \frac{d g_1(x)}{dx} + \dots + \frac{\partial f}{\partial g_M(x)}  \cdot \frac{d g_M(x)}{dx} \right] \cdot \Delta x \\
+& = \frac{\partial f}{\partial g_1(x)}  \cdot \frac{d g_1(x)}{dx} \cdot \Delta x + \dots + \frac{\partial f}{\partial g_M(x)}  \cdot \frac{d g_M(x)}{dx} \cdot \Delta x
+\end{align*}
+++++
+
+== Example ==
+Let stem:[y=f(x_1, x_2) = \log x_1 + x_1x_2 - sin(x_2)]. Find stem:[\frac{\partial f}{\partial x_1}] and stem:[\frac{\partial f}{\partial x_2}] at stem:[(x_1, x_2) = (2,5)].
+
+There are three methods that help us find these partial derivatives.
+
+=== Symbolic Differentiation ===
+We know that
+
+* stem:[\frac{\partial f}{\partial x_1} = \frac{1}{x_1} + x_2]. At stem:[(2,5)], the value of the derivative is 5.5.
+* stem:[\frac{\partial f}{\partial x_2} = x_1 - cos(x_2)]. At stem:[(2,5)], the value of the derivative is 1.716.
+
+=== Automatic Differentiation ===
+Automatic differentiation allows us to obtain the accurate gradients of the loss with respect to each parameter in neural networks. There are two methods of automatic differentiation: Forward derivative trace and backward derivative trace. The backward derivative trace is used to train the neural networks.
+
+*Forward Derivative Trace:*
+
+To carry out this method, let's look at the computational graph representing the evaluation of the given function:
+
+image::.\images\frwd_derivative_trace.png[align='center', 500, 300]
+
+Following the green forward primal trace will output the final stem:[y] value for the inputs stem:[(x_1, x_2)]. Now, let's follow the red forward derivative trace to find the partial derivative of this function with respect to stem:[x_1].
+
+Define stem:[\frac{\partial v_i}{\partial x_1} = \dot{v_i}]. Then
+
+[stem]
+++++
+\begin{align*}
+\dot{v_1} & = \frac{\partial v_1}{\partial x_1} = \frac{\partial x_1}{\partial x_1} =1 \\
+\dot{v_2} & = \frac{\partial v_2}{\partial x_1} = 0 \\
+\dot{v_3} & = \frac{\partial v_3}{\partial x_1} = \frac{\partial}{\partial x_1}(\log v_1) = \frac{\dot{v_1}}{v_1} = \frac{1}{x_1} = \frac{1}{2} \\
+\dot{v_4} & = \frac{\partial v_4}{\partial x_1} = \frac{\partial}{\partial x_1} v_1v_2 = v_2 = x_2 = 5 \\
+\dot{v_5} & = \frac{\partial v_5}{\partial x_1} = \frac{\partial}{\partial x_1} (v_3 + v_4) = \dot{v_3} + \dot{v_4} = \frac{1}{x_1} + x_2 = 5.5\\
+\dot{v_6} & = \frac{\partial v_6}{\partial x_1} = \frac{\partial}{\partial x_1} \text{sin}(v_2) = 0 \\
+\frac{\partial y}{\partial x_1} & = \frac{\partial}{\partial x_1} (v_5 - v_6) = \dot{v_5} - \dot{v_6} = \frac{1}{x_1} + x_2 = 5.5\\
+\end{align*}
+++++
+
+This is the same as the result of symbolic differentiation. But this method is time consuming because it requires the forward derivative trace for each variable stem:[x_i] separately. An improvement over this problem is the backward derivative trace method.
+
+*Backward Derivative Trace:*
+
+This method propagates derivatives backward from a given output.
+
+image::.\images\backward_trace.png[align='center', 500, 300]
+
+Define stem:[\frac{\partial y}{\partial v_i} = \bar{v}_i]. Then
+
+[stem]
+++++
+\begin{align*}
+\bar{v}_6 & = \frac{\partial y}{\partial v_6} = \frac{\partial}{\partial v_6} (v_5 - v_6) =-1 \\
+\bar{v}_5 & = \frac{\partial y}{\partial v_5} = \frac{\partial}{\partial v_5} (v_5 - v_6) =1 \\
+\bar{v}_4 & = \frac{\partial y}{\partial v_4} = \frac{\partial y}{\partial v_5} \cdot \frac{\partial v_5}{\partial v_4} = \bar{v}_5 \cdot \frac{\partial v_5}{\partial v_4} = \frac{\partial}{\partial v_4} (v_3 + v_4) = 1  \\
+\bar{v}_3 & = \frac{\partial y}{\partial v_3} = \frac{\partial y}{\partial v_5} \cdot \frac{\partial v_5}{\partial v_3} = \bar{v}_5 \cdot \frac{\partial v_5}{\partial v_3} = \frac{\partial}{\partial v_3} (v_3 + v_4) = 1  \\
+\end{align*}
+++++
+
+We see for stem:[\bar{v}_4] and stem:[\bar{v}_3] that the derivative is a product of two terms: the backpropagated derivative stem:[\bar{v}_5] and the local derivative at that point. Using this rule
+
+[stem]
+++++
+\begin{align*}
+\bar{v}_1 & = \bar{v}_3 \frac{\partial v_3}{\partial v_1} + \bar{v}_4 \frac{\partial v_4}{\partial v_1} = \bar{v}_3 \frac{\partial}{\partial v_1}(\log v_1) + \bar{v}_4 \frac{\partial}{\partial v_1} (v_2v_1) = \frac{1}{\log v_1} + v_2 = 5.5 \\
+\bar{v}_2 & = \bar{v}_4 \frac{\partial v_4}{\partial v_2} + \bar{v}_6 \frac{\partial v_6}{\partial v_2} = \bar{v}_4 \frac{\partial}{\partial v_2}(v_1v_2) + \bar{v}_6 \frac{\partial}{\partial v_2} \text{sin}(v_2) = v_1 - \text{cos}(v_2) = 2 - 0.2837 = 1.716 \\
+\end{align*}
+++++
+
+The results are the same as the symbolic differentiation. And this method allows us to find the partial derivatives with respect to stem:[x_1] and stem:[x_2] all at once in a single trace. Therefore, this method is faster than the forward derivative trace method. This method is used for error backpropagation in Tensorflow, Pytorch, etc.
+
+*Naming Convention:*
+In the backward derivative trace, at each node we take the product of two derivative terms. They can be named as:
+
+image::.\images\gradient_flow.png[align='center', 400, 300]
+
+stem:[\frac{\partial g}{\partial x}] is called the local gradient because it is computed at this node using the relation between stem:[g] and stem:[x].
+
+=== Numerical Differentiation ===
+Numerical differentiation allows us to obtain approximate gradients of the loss with respect to each parameter. Neural networks can be trained roughly using numerical differentiation, without using error backpropagation. Instead of finding the exact gradient, we can find an approximate gradient and use gradient descent to adjust the parameters.
+
+* *Forward difference approximation:*
++
+[stem]
+++++
+\frac{\partial L}{\partial w_1} \approx \frac{L(w_1+h, w_2, \dots, b)-L(w_1, w_2, \dots, b)}{h}
+++++
++
+Change the stem:[w_1] by small amount and compute this quantity.
+
+* *Center difference approximation:*
++
+[stem]
+++++
+\frac{\partial L}{\partial w_1} \approx \frac{L(w_1+h, w_2, \dots, b)-L(w_1-h, w_2, \dots, b)}{2h}
+++++
++
+This method is slightly more accurate.
+
+This method of differentiation is slow and it cannot be scaled. Thus, it is not used much in practice.
+
+== Automatic Differentiation in NN ==
+Suppose we have a neural network as below. This network has a total of 10 parameters. We need to find the derivative of the loss function with respect to all these 10 parameters. The computational graph of this network for calculating the loss is given by
+
+image::.\images\nn_computational_graph.png[align='center']
+
+We can use the backward derivative trace method to compute all these derivatives.
+
+== Why Backward Propagation? ==
+This method employs the analytical way, i.e., we derive a formula (if possible) analytically to compute the gradient.
+
+NOTE: Some functions are not differentiable, so we cannot use automatic differentiation while working with those functions.
+
+For the output layer of a neural network, we know the desired output stem:[y] and the predicted output stem:[\hat{y}], so we can define the error and the loss. The error (of a single data point) from the output layer can be defined as stem:[e=y-\hat{y}] and loss as stem:[L(\mathbf{w},b) = \frac{1}{2} (y-\hat{y})^2]. We can then easily calculate the gradients of this loss function with respect to the parameters associated with the output layer, stem:[\mathbf{W}_o] and stem:[\mathbf{b}_o]. And use these gradients to adjust these weights and biases using the gradient descent method.
+
+image::.\images\find_gradients.png[align='center', 600, 400]
+
+However for neurons in the hidden layers, we cannot directly define the error and loss because we do not know the desired output from these neurons. So how do we update the parameters stem:[\mathbf{W}_h] and stem:[\mathbf{b}_h]?
+
+The error from the output layer can be propagated backward to the hidden layers. This is the error backpropagation algorithm. Using the propagated error, we can obtain the gradients with respect to the parameters of the hidden layer. We can then use these gradients to adjust the weights and biases of the hidden layer using the gradient descent method.

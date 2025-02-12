@@ -1,0 +1,77 @@
+= Optimizers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Issues with Gradient Descent ==
+The parameter update equation in gradient descent is
+
+[stem]
+++++
+w_{t+1} = w_t - \eta \frac{\partial L(w_t)}{\partial w}
+++++
+
+The loss function in neural networks is high-dimensional and may have local minima and saddle points. At these points, the derivative becomes zero, preventing further updates. As a result, we get stuck at a point stem:[w_t] without making further progress. We should avoid getting stuck at an undesired local minima.
+
+== Convergence for Quadratic Functions ==
+Quadratic functions are convex functions. A real-valued quadratic function of one variable is
+
+[stem]
+++++
+L(w) = \frac{1}{2} Cw^2 + dw + e
+++++
+
+The second-order approximation of stem:[L] within the neighborhood of a point stem:[w^*] can be given by the Taylor series as
+
+[stem]
+++++
+L(w) = L(w^*) + (w-w^*) \frac{\partial L(w^*)}{\partial w} + \frac{1}{2} (w-w^*)^2 \frac{\partial L^2(w^*)}{\partial w^2}
+++++
+
+Note stem:[w^*] is a fixed point, therefore stem:[\frac{\partial L(w^*)}{\partial w} = Cw^*+d] and stem:[\frac{\partial L^2(w^*)}{\partial w^2}=C] are constants.
+
+If the loss function attains a local minima at stem:[w] (in the neighborhood of stem:[w^*]), then the derivative at that stem:[w] must be zero.
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial L(w)}{\partial w} & = 0 \\
+\frac{\partial L(w^*)}{\partial w} + (w_{\text{opt}} -w^*) \frac{\partial L^2(w^*)}{\partial w^2} & = 0 \\
+\\
+L'(w^*) + (w_{\text{opt}}-w^*) L''(w^*) & = 0 \\
+(w_{\text{opt}}-w^*) L''(w^*) & = - L'(w^*) \\
+w_{\text{opt}} & = w^* - \frac{L'(w^*)}{L''(w^*)}
+\end{align*}
+++++
+
+Now assume we are at any fixed point stem:[w^*] (it can be anywhere in the domain of the function). We can reach the optimal stem:[w] (the local minima) using the above equation in a single step.
+
+TIP: Convex functions has only one local minima and it is also the global minima.
+
+The equation is similar to the gradient descent update equation.
+
+[stem]
+++++
+\begin{align*}
+w_{\text{opt}} & = w^* - \frac{1}{L''(w^*)} \cdot L'(w^*) \\
+w_{\text{opt}} & = w^* - \frac{1}{C} \cdot L'(w^*)
+\end{align*}
+++++
+
+Therefore, for a quadratic function stem:[L(w) = \frac{1}{2} Cw^2 + dw + e], if we take the step size stem:[\eta = \frac{1}{C}], the gradient descent algorithm will converge to the optimal value in a single update. This is the optimal step.
+
+* If stem:[\eta < \frac{1}{C}], we will converge slowly through multiple steps.
+* If stem:[\eta = \frac{2}{C}], we will remain oscillating without convergence. The quadratic functions are symmetric about an axis going through the local minima. The minima will be at a distance of stem:[\frac{1}{C} \cdot L'(w^*)] from any given point stem:[w^*]. But stem:[\eta = \frac{2}{C}], we keep moving a distance of stem:[2 * \frac{1}{C} \cdot L'(w^*)] from stem:[w^*]. This results in oscillation (no convergence and no divergence).
+* If stem:[\eta > \frac{2}{C}], we will diverge. At each step, the loss function value will be increasing.
+* If stem:[\frac{1}{C} < \eta < \frac{2}{C}], we will oscillate, but converge later.
+
+image::.\images\issues_with_gd_01.png[align='center', 800, 500]
+
+Hence stem:[\eta] is an important parameter and it should be chosen carefully. Based on its value, we will either converge, diverge, or oscillate around the local minima.
+
+Not all loss functions are quadratic function. When the loss function is non-quadratic, we can perform a quadratic approximation. Say we have a function (the blue curve) which is not quadratic. We can approximate the function within the neighborhood of a point stem:[w_0] by the Taylor series.
+
+Green curve is the quadratic approximation of the loss function at stem:[w_0].
+
+

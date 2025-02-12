@@ -1,0 +1,147 @@
+import tqdm
+
+def sigmoid(s):
+  """
+  Input can be a scalar, vector, or a matrix. It applies the logistic function element-wise.
+  """
+  return 1 / (1+ np.exp(-s))
+
+# let's define each layer and then put them in the right order to form a network
+# the Sigmoid Layer
+
+class Sigmoid():
+  def forward(self, input):
+    """
+    Apply sigmoid to each element of the input,
+    and save the results to use in backpropagation.
+    """
+    self.sigmoids = sigmoid(input)
+    return self.sigmoids
+
+  def backward(self, gradient):
+    """
+    compute the downstream gradient by multiplying the upstream and the local gradient element-wise.
+    """
+    up_grad = gradient
+    local_grad = self.sigmoids * (1-self.sigmoids)
+    down_grad = up_grad * local_grad  #Hadamard product
+
+    # if np.isscalar(down_grad):
+    #     down_grad = np.array([down_grad])
+    return down_grad
+  
+  def params(self):
+      return ()
+      
+  def grads(self):
+      return ()
+	  
+	  
+# the linear layer
+class Linear():
+  def __init__(self, input_dim, output_dim, w, b):
+    self.input_dim = input_dim
+    self.output_dim = output_dim
+    self.w = w
+    self.b = b
+
+  def forward(self, input):
+    # save the input to use in the backward pass
+    self.input = input
+
+    s = self.w @ self.input + self.b
+    return s
+
+  def backward(self, gradient):
+    up_grad = gradient
+    local_grad = self.w.T
+    # print(f'up_grad: {up_grad}')
+    # print(f'local_grad: {local_grad}')
+    down_grad = local_grad @ up_grad
+
+    self.b_grad = gradient
+    self.w_grad = self.input.T * up_grad
+
+    return down_grad
+  
+  def params(self):
+    return [self.w, self.b]
+  
+  def grads(self):
+    return [self.w_grad, self.b_grad]
+	
+# building the network
+
+class Sequential():
+  def __init__(self, layers):
+    self.layers = layers
+  
+  def forward(self, input):
+    """ Just forward the input through the layers in order. """
+    for layer in self.layers:
+      input = layer.forward(input)
+    return input
+
+  def backward(self, gradient):
+    """Backpropagate the gradient through the layers in reverse. """
+    for layer in reversed(self.layers):
+      gradient = layer.backward(gradient)
+    return gradient
+
+  def params(self):
+    """Returns the params from each layer. """
+    return (param for layer in self.layers for param in layer.params())
+
+  def grads(self):
+    """Returns the grads with respect to the parameters from each layer. """
+    return (grad for layer in self.layers for grad in layer.grads())
+
+class SSE():
+  """ Loss function that computes the sum of the squared errors."""
+
+  def loss(self, y_pred, y_actual):
+    return np.sum((y_actual - y_pred) ** 2)
+     
+  def gradient(self, y_pred, y_actual):
+    return 2 * (y_pred - y_actual)
+	
+	
+# Gradient descent optimizer
+class GradientDescent():
+  def __init__(self, lr=0.01):
+    self.lr = lr
+  
+  def step(self, layer):
+    for param, grad in zip(layer.params(), layer.grads()):
+      param[:] = param - self.lr * grad
+	  
+# training data
+
+xs = np.array([[0,0], [0,1], [1,0], [1,1]])
+ys = np.array([[0], [1], [1], [0]])
+
+rng = np.random.default_rng(seed=0)
+
+net = Sequential([
+    Linear(input_dim=2, output_dim=2, w=rng.normal(loc=0, scale =0.5, size=(2,2)), b = rng.normal(loc=0, scale =0.5, size=2)) ,
+    Sigmoid(),
+    Linear(input_dim=2, output_dim=1, w=rng.normal(loc=0, scale =0.66, size=(1,2)), b = rng.normal(loc=0, scale =1, size=1))
+])
+
+optimizer = GradientDescent(lr=0.1)
+loss = SSE()
+
+with tqdm.trange(10) as t:
+  for epoch in t:
+    epoch_loss = 0.0
+
+    for x,y in zip(xs, ys):
+      predicted = net.forward(x)
+      #print(f'prediction: {predicted}')
+      epoch_loss += loss.loss(predicted, y)
+      gradient = loss.gradient(predicted, y)
+      net.backward(gradient)
+
+      optimizer.step(net)
+    
+    t.set_description(f'xor loss {epoch_loss:.3f}')

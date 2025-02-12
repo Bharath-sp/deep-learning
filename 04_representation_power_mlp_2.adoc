@@ -1,0 +1,137 @@
+= Representation Power of MLP =
+:doctype: book
+:author: Bharath Kumar S P
+:email: bharath030195@gmail.com
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Regression Setting ==
+Two hidden layer MLP is a universal regressor and classifier. It can model any continuous function (linear or non-linear) and any classification boundaries (linear or non-linear).
+
+Let's consider two input variables function stem:[f(x,y): \mathbb{R}^2 \to \mathbb{R}]. To approximate any such function, we should be able to model a tower of desired width and height in any region in the input space.
+
+Let's start by approximating the step function in stem:[x] and stem:[y] direction. The larger the values of stem:[w_1] and stem:[w_0], the more steeper the function will be. For the below network, the output from the neuron is
+
+image::.\images\uat_vector_01.png[align='center', 700, 400]
+
+where stem:[s_{x1} = -\frac{w_0}{w_1}] is the step point. As we saw earlier, we can describe a neuron by this step point. Similarly,
+
+image::.\images\uat_vector_02.png[align='center', 700, 400]
+
+We can use the step functions we've just constructed to compute a three-dimensional bump function. stem:[h] is the desired height of the bump. The weighted output from the hidden layer (input to the output neuron after summation) is
+
+image::.\images\uat_vector_03.png[align='center', 500, 300]
+
+image::.\images\uat_vector_04.png[align='center', 500, 300]
+
+Let's see what happens when we add up two bump functions, one in the stem:[x] direction, the other in the stem:[y] direction, both of height stem:[h]. The weighted output from the hidden layer is
+
+image::.\images\uat_vector_05.png[align='center', 600, 400]
+
+Note: zero weight connections are not shown. This is not a tower function yet; we have trailing extensions. The contour plot of the function is
+
+image::.\images\uat_contour_01.png[align='center', 500, 400]
+
+The response in other regions, i.e., other than the pulse region should be 0. If we could build such tower functions, then we could use them to approximate arbitrary functions, just by adding up many towers of different heights, and in different locations:
+
+image::.\images\uat_towers.png[align='center', 500, 400]
+
+We haven't yet figured out how to build a tower function. We have a central tower, of height stem:[2h], with a surrounding plateau, of height stem:[h]. We know that neurons can be used to implement a type of if-then-else statement. We can pass the weighted combination of the outputs from the hidden neurons to a neuron with a threshold of value, say stem:[\frac{3h}{2}], which is sandwiched between the height of the plateau and the height of the central tower. Doing so, we could squash the plateau down to zero, and leave just the tower standing.
+
+[stem]
+++++
+\text{if combined output from hidden neurons } \geq \text{ threshold}:
+\text{output } 1 \,\,
+\text{else}:
+\text{output } 0
+++++
+
+Note that we are now plotting the output from the entire network, not just the weighted output from the hidden layer. This means we add a bias term to the weighted output from the hidden layer, and apply the sigma function. When the weights stem:[h] are large, the sigma function approximates a step function.
+
+By keeping stem:[h] large, we model the output neuron such that it outputs
+
+[stem]
+++++
+z = \begin{cases} 1 & \text{when } \sum_{j=1}^4 h a_j \geq \frac{3h}{2} \text{ or } \sum_{j=1}^4 h_j a_j - \frac{3h}{2}  \geq 0 \\ 0 & \text{else} \end{cases}
+++++
+
+So our bias stem:[b] should be stem:[-\frac{3h}{2}]. For stem:[h=10, b=-15]
+
+image::.\images\uat_vector_06.png[align='center', 500, 400]
+
+Let's try gluing two such networks together, in order to compute two different tower functions. In the image below, each box computes a tower function. The graph on the right shows the weighted output from the second hidden layer, that is, it's a weighted combination of tower functions. By modifying the weights in the final layer you can change the height of the output towers.
+
+image::.\images\uat_vector_07.png[align='center', 500, 800]
+
+The same idea can be used to compute as many towers as we like. We can also make them as thin as we like, and whatever height we like. As a result, we can ensure that the weighted output from the second hidden layer approximates any desired function of two variables. In particular, by making the weighted output from the second hidden layer a good approximation to stem:[\sigma^{-1}(f(x))], we ensure the output from our network will be a good approximation to any desired function, stem:[f].
+
+IMPORTANT: As we have a sigmoid function in the end, our output is upper bounded by 1.
+
+Exactly the same idea works in stem:[n] dimensions. The only change needed is to make the output bias stem:[(-n + \frac{1}{2})h], in order to get the right kind of sandwiching behavior to level the plateau.
+
+The same idea can be extended to vector-valued functions stem:[f: \mathbb{R}^n \to \mathbb{R}^m]. Such a function can be regarded as just stem:[m] separate real-valued functions, stem:[f^1(x_1, \dots, x_n), \dots, f^m(x_1, \dots, x_n)]. So we create a network approximating stem:[f^1], another network for stem:[f^2], and so on. And then we simply glue all the networks together.
+
+=== Universality with Single Hidden Layer ===
+It is also possible to approximate an arbitrary function using a network with single hidden layer. 
+We know that each neuron models a line in the input space stem:[(x,y)] (see the Perceptron article). In each grey block in our last network, we used four neurons in the first hidden layer to get four lines. From the top view, we can observe
+
+image::.\images\uat_contour_02.png[align='center', 500, 400]
+
+Here we get rectangular shaped towers. All the neuron's outputs are either a function of either stem:[x] or stem:[y], because of which we get lines parallel to the axes. We can modify the configuration to get lines with positive slopes, which gives us tilted rectangular shaped towers.
+
+We can increase the number of lines stem:[N] by adding more neurons in the first hidden layer. With five lines, we get a pentagon. A hexagon with six lines, etc. As we increase stem:[N \to \infty], we get a circular structure. Thus it is possible to approximate a tower function which is circular in shape, rather than rectangular.
+
+image::.\images\uat_contour_03.png[align='center', 500, 400]
+
+We have used the second hidden layer to get rid of the troubling regions. We set different thresholds for different troubling regions, i.e., the weights, bias of the second hidden layer neurons depend upon the troubling region around the particular tower function.
+
+In the limiting case as stem:[N \to \infty], all the plateau region will have the same value. As it is the same for all the towers, it is sufficient for us to have only one output neuron with appropriate threshold set. This way we can get rid of the second hidden layer. 
+
+== Classification Setting ==
+In the classification setting, we can form any non-linear boundaries with these lines. For example, assume that the given data points are as below. The data points inside the square have positive labels, and the data points outside the square have negative labels.
+
+image::.\images\uat_classification.png[align='center', 700, 500]
+
+As we get different outputs from each troubling region, setting a threshold of 4 gives us 1 for those points inside the region and 0 for the points outside the region.
+
+The network structure shown above can be repeated for each region in the input space where the data labels are positive. The output of such a network is 1 or 0. The results from all such networks can be added to get the final output of 1 or 0. Thus we can realize any arbitrary classification region with the MLP.
+
+image::.\images\uat_classification_02.png[align='center', 800, 600]
+
+In the limiting case as stem:[N \to \infty], the value of the weighted combination for the points stem:[(x,y)] inside the circle will be stem:[N] and the value of the weighted combination for the points outside the circle will be stem:[\frac{N}{2}]. Here we considered all the weights to be 1. All the troubling regions will have the same value stem:[\frac{N}{2}]. By appropriately choosing the threshold to be stem:[\theta = \frac{N}{2}], we can get a binary result.
+
+* For the points stem:[(x,y)] inside the circle, the output from the network will be 1.
+* For the points stem:[(x,y)] ouside the circle, the output from the network will be 0.
+
+Therefore, we don't need to have a second hidden layer in our network.
+
+== Beyond Sigmoid Neurons ==
+The activation function stem:[\sigma(.)] can be as general as any non-polynomial function (non-linear), It should just satisfy the below properties:
+
+. stem:[\sigma(z)] should be well-defined as stem:[z \to -\infty] and stem:[z \to \infty], or it should be at least one-side bounded. 
+. These two limits are the two values taken on by our step function. We also need to assume that these limits are different from one another.
+
+Provided the activation function stem:[\sigma(z)] satisfies these properties, neurons based on such an activation function are universal for computation. So the UAT theorem holds for a wide range of activation functions like ReLU, tanh, etc.
+
+== Limitations of the Universality Theorem ==
+
+. The theorem does not specify how many neurons are required in the hidden layer for a specific level of accuracy. We may require an infinite size for the hidden layer.
+. It does not address the efficiency or practical feasibility of training (finding the parameter values for) such networks.
+. The network learns the function only from the training data. The trained network may not generalize well on the test data.
+. Doesn't enable the hierarchical learning.
+
+In practice, deeper networks (with multiple hidden layers) are preferred because they are more efficient and require fewer neurons per layer to achieve similar approximation capabilities. To reduce the number of neurons, we need to trade-off with the depth of the network.
+
+== References ==
+. Nielsen, M. A. (2015b). Neural networks and deep learning. http://neuralnetworksanddeeplearning.com/chap4.html
+
+
+
+
+
+
+
+
+
+

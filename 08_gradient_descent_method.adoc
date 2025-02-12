@@ -1,0 +1,244 @@
+= Gradient Descent Method =
+:doctype: book
+:figure-caption!:
+:stem: latexmath
+:eqnums:
+:toc:
+
+Why Gradient Descent? What is it? Like a hiker finding the fastest route downhill, this powerful algorithm tweaks and tunes models step by step to minimize loss. Simple yet elegant, it's the heart of modern machine learning!
+
+== Why Gradient Descent? ==
+In the supervised learning setting, assume we are given a training data stem:[\mathcal{D} = \{(\mathbf{x}_1, t_1), \dots, (\mathbf{x}_N, t_N) \}]. Given this data, we would like to estimate a predictor stem:[f(\cdot; \boldsymbol{\theta}) : \mathbb{R}^D \rightarrow \mathbb{R}]. We hope to find optimal parameters such that we fit the data well.
+
+[stem]
+++++
+f(\mathbf{x}_n, \boldsymbol{\theta}^* ) \approx t_n \text{ for all } n=1, \dots, N.
+++++
+
+Depending on the nature of the output labels, we choose our function stem:[f] from a class of functions such as affine functions, non-linear functions, etc. Given the class of functions, we want to search for a good function stem:[f]. But how do we measure the goodness of a function, i.e., how to measure how well the chosen function fits the training data?
+
+Consider the true label stem:[t_n] for a particular data point, and the corresponding prediction stem:[y_n] that we make based on stem:[\mathbf{x}_n]. To define what it means to fit the data well, we need to specify a *loss function* stem:[l(t_n, y_n)]. The loss function takes stem:[t_n] and stem:[y_n] as inputs and produces a non-negative number, referred to as the loss, measuring how much error we made on this particular prediction.
+
+We are interested in finding a predictor stem:[f] (which boils down to finding a good parameter vector stem:[\mathbf{w}^*]) that minimizes the expected value of the loss. The expected loss (or risk) is given by
+
+[stem, id='equation_1']
+++++
+\begin{equation}
+L_{\text{true}}(f) = \mathbb{E}_{\mathbf{x},t}[ l(t, f(\mathbf{x})) ]
+\end{equation}
+++++
+
+Where stem:[t] is the true label, stem:[f(\mathbf{x})] is the prediction based on the data point stem:[\mathbf{x}]. The expectation is over the data points stem:[\mathbf{x}] and its label by keeping a function stem:[f] fixed. For each stem:[f], we get a loss value. We need to choose that stem:[f] which minimizes the loss the most.
+
+[stem]
+++++
+f^* = \arg \min_{f \in \mathcal{F}} L_{\text{true}}(f)
+++++
+
+<<equation_1, Equation 1>> is the true loss if we had access to an infinite amount of data. In practice, we are just given a training set stem:[\mathbf{X} = [\mathbf{x}_1, \dots, \mathbf{x}_N \]^\top ] and a label vector stem:[\mathbf{t} = [t_1, \dots, t_N\]]. As the data points are i.i.d, we can estimate the true loss empirically by taking the mean of the loss on the training data
+
+[stem]
+++++
+L_{\text{emp}}(f, \mathbf{X}, \mathbf{t}) = \frac{1}{N} \sum_{n=1}^N l(t_n, y_n)
+++++
+
+As the function is dependent on the parameter value stem:[\mathbf{w}], we can simply say that we need to find stem:[\mathbf{w}] that minimizes the loss function for the given training data stem:[\mathcal{D}].
+
+[stem]
+++++
+\mathbf{w}^* = \arg \min_{\mathbf{w}} L_{\text{emp}}(\mathbf{w})
+++++
+
+How do we find these optimal parameters?
+
+For certain algorithms, it is very easy to find the optimal parameters. For example, for linear regression, we can minimize the loss function analytically and get a closed form solution to stem:[\mathbf{w}^*]. But what if the loss function can't be minimized analytically?
+
+In neural networks, when we have two parameters stem:[w_1] and stem:[w_2], our loss surface can be 
+
+.Image Source: A. Amini et al. “Spatial Uncertainty Sampling for End-to-End Control”. NeurIPS Bayesian Deep Learning 2018
+image::.\images\loss_function.png[align='center', 400, 300]
+
+NOTE: The loss function is plotted against the parameters.
+
+The shape of stem:[L] will not be convex due to many variables and non-linear activation functions in NN, thus no closed form solution exists. Our goal is to search for the parameters stem:[\mathbf{w}] in this space for which the loss function value will be minimum. The gradient descent algorithm helps us do this.
+
+== Gradient Descent Method ==
+Initially, the parameters are initialized randomly. The parameters are iteratively updated in the direction that the loss function becomes smaller. From a given point in the input space, how do we find the direction that reduce the loss function? We use a result from calculus:
+
+====
+* The gradient vector stem:[\nabla L] gives the direction and rate of fastest increase for stem:[L].
++
+The gradient at a point stem:[\mathbf{w}] gives us the direction in which the function (within the close neighborhood of stem:[\mathbf{w}]) increases the maximum. In this close neighborhood around stem:[\mathbf{w}], the change in stem:[L] can be given by stem:[\Delta L = \nabla L \cdot \Delta \mathbf{w}].
+
+* The direction opposite to the gradient stem:[- \nabla L] gives the direction and rate of fastest decrease for stem:[L].
+====
+
+We can use this result to update the parameter at each step. As the parameters are updated, the loss function becomes smaller, so the predicted value gets closer to the actual target value. In simpler terms, in Gradient descent, we follow the below steps:
+
+. Start with an arbitrary initial parameter vector stem:[\mathbf{w}]. Sense the slope around to identify the steepest direction.
+. Make a brief progress in the opposite direction.
+. Repeat until convergence.
+
+Let's see some examples on how to use the gradient descent algorithm to find the minimizer of a function.
+
+*Example 01:*
+
+Say our objective (or loss) function is
+
+[stem]
+++++
+\min_{w} L(w) = \min_{w} (w-2)^2
+++++
+
+On differentiating this equation with respect to stem:[w] and finding the point where the slope is 0, it is easy to see that the optimal stem:[w^*] is
+
+[stem]
+++++
+\frac{\partial L}{\partial w} = 0 \implies 2w^*-4 = 0 \implies w^* = 2
+++++
+
+Solving using this method is difficult when we have more variables. In such cases, numerical analysis is used to solve this problem. Let's use gradient descent to solve this. Let's see for the 1D case, stem:[L] is a function of only one variable.
+
+. Initially set stem:[w] to a random value. Let stem:[w_t = 0.5]. The loss function value is stem:[L(w_t) = 2.25].
+. Find the slope of stem:[L] at that point, stem:[\frac{\partial L}{\partial w} \big|_{w= 0.5} = 2w-4 = -3 ].
+.. If the slope is negative, the stem:[w^*] we are looking for is on the right side.
+.. If the slope is positive, the stem:[w^*] we are looking for is on the left side.
+
+. Update the parameter using the formula 
++
+[stem]
+++++
+w_{t+1} = w_t - \alpha \frac{\partial L}{\partial w} \bigg|_{w_t}
+++++
++
+where stem:[\alpha] is the positive learning rate (a hyperparameter) which determines how much stem:[w] increases or decreases.
++
+[stem]
+++++
+w_{t+1} = 0.5 - (0.25 * -3) = 1.25
+++++
++
+Now the loss function value is stem:[L(w_{t+1}) = 0.56]. The loss value has decreased.
+
+By repeating this process until the parameter stem:[w] no longer changes, we find the optimal stem:[w^*].
+
+image::.\images\gradient_descent_01.png[align='center', 400, 300]
+
+*Example 02:*
+
+Say our objective (or loss) function is
+
+[stem]
+++++
+\min_{w_1, w_2} L(w_1, w_2) = \min_{w_1, w_2} (w_1-2)^2 + (w_2 -3)^2
+++++
+
+. Let stem:[(w_{1,t}, w_{2,t}) = (3,2)] be the initial value for the parameters.
+. Find the gradient at the point.
++
+[stem]
+++++
+\begin{align*}
+\nabla L (w_1, w_2) & = \left( \frac{\partial L}{\partial w_1}, \frac{\partial L}{\partial w_2}\right) \\
+\nabla L (w_1, w_2) & = (2w_1-4, 2w_2 -6) \implies \nabla L (3, 2) = (2, -2)
+\end{align*}
+++++
+
+. Update the parameter using the formula 
++
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t} \\
+w_{2, t}
+\end{bmatrix} - \alpha \begin{bmatrix}
+\frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_1} \\
+\frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+3 \\
+2
+\end{bmatrix} - 0.25 \begin{bmatrix}
+2 \\
+-2
+\end{bmatrix} = \begin{bmatrix}
+2.5 \\
+2.5
+\end{bmatrix}
+++++
+
+image::.\images\gradient_descent_02.png[align='center', 400, 300]
+
+There are so many paths to reach the optimal point. So, a path optimization process is required. In neural networks, the actual shape of stem:[L] is much more complex than this due to many variables and non-linear activation functions. The actual shape of stem:[L] will not be convex.
+
+There will be many points in weight space at which the gradient will be 0, i.e, there will be so many critical points. Indeed, we see that for any point stem:[\mathbf{w}] that is a local minimum, there will be other points in weight space that are equivalent minima. For instance, in a two-layer network with stem:[M] hidden units each point in weight space is a member of a family of stem:[M!2^M] equivalent points.
+
+For a successful application of neural networks, it may not be necessary to find the global minimum, but it may be necessary to compare several local minima in order to find a sufficiently good solution.
+
+== Types of Gradient Descent ==
+In practice, we will have a dataset with stem:[N] data points. We have target stem:[y] and predicted stem:[\hat{y}] which is obtained by using randomly initialized parameter values. For given stem:[y] and stem:[\hat{y}], we compute the empirical loss function value.
+
+* In regression analysis, the MSE is used as the loss function.
++
+[stem]
+++++
+L(\mathbf{w},b) = \frac{1}{N} \sum_{n=1}^N \frac{1}{2} (t_n - y_n)^2
+++++
+
+* In binary classification, binary cross-entropy (BCE) is used.
++
+[stem]
+++++
+L(\mathbf{w},b) = - \frac{1}{N} \sum_{n=1}^N [t_n \log(y_n) + (1-t_n) \log (1-y_n)]
+++++
+
+* In multiclass classification, cross-entropy (CE) is used.
++
+[stem]
+++++
+L(\mathbf{w},b) = - \frac{1}{N} \sum_{n=1}^N \sum_{k=1}^C t_{n,k} \log(y_{n,k})
+++++
++
+Where stem:[C] is the number of classes in stem:[y], and it is the number of neurons in the output layer.
+
+In general, the loss function and its derivative with respect to a parameter stem:[w_1] is
+
+[stem]
+++++
+L(\mathbf{w},b) = \frac{1}{N} \sum_{n=1}^N l(t_n, y_n) \hspace{1cm} \frac{\partial L}{\partial w_1} = \frac{1}{N} \sum_{n=1}^N \frac{\partial l(t_n, y_n)}{\partial w_1} 
+++++
+
+Similarly, we should take derivative of stem:[L] with respect to all other parameters for computing the gradient. Here we note that to compute the gradient stem:[\nabla L], we are summing up the gradient from all the data points. But do we need to consider all the stem:[N] data points to compute the gradient?
+
+There are three types of gradient descent based on how many data points we consider to compute the gradient:
+
+. *Stochastic Gradient Descent (SGD)*:
++
+Randomly select a data point, compute the gradient, and update the parameters via gradient descent. Repeat this with other data points one by one. If we iterate over the entire dataset once, that is, select stem:[N] data points, the parameters are updated stem:[N] times per iteration. Convergence may be fast because the parameters are updated frequently.
++
+However, because the gradient can fluctuate greatly depending on the data point selected, convergence may be unstable. This can be controlled by setting the learning rate to a low value.
+
+. *Batch Gradient Descent (GD or BGD)*:
++
+Compute the average gradient for all data points at once and update the parameters once. The parameters are updated once per iteration. Convergence may be slow because parameters are updated infrequently. However, since the average gradient is stable, convergence will also be stable. In addition, if the data is very large, it may not be possible to store it all in memory at once.
++
+[source,python]
+----
+for i in range(nb_epochs):
+    grad_w = evaluate_gradient(L, data, w)
+    w = w - eta * grad_w
+----
++
+In large datasets, batch GD computes redundant gradients because of too many similar data points.
+
+. *Mini-batch Gradient Descent*:
++
+Shuffle the dataset well. Split the shuffled dataset into multiple datasets to compute the gradient for each subset and update the parameters. If the number of subsets is stem:[m] with stem:[k] data points in each subset, the parameters are updated stem:[m] times in one iteration. Mini-batch gradient descent aims to find a balance between the speed of stochastic gradient descent and the stability of batch gradient descent. It is most widely used in deep learning.
+
+image::.\images\types_of_gd.png[align='center', 500, 400]
+
+== References ==
+. Deisenroth, M. P., Faisal, A. A., and Ong, C. S. (2020). Mathematics for Machine Learning. Cambridge University Press. https://mml-book.github.io/
+. meanxai. (2024, June 10). [MXDL-1-03] Artificial Neural Network [3/7] - Gradient Descent method and Numerical Differentiation [Video]. YouTube. https://www.youtube.com/watch?v=nqzS3dEvIQ0

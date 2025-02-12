@@ -1,4 +1,4 @@
-= Structure of ANN =
+= Terminologies and Notations =
 :doctype: book
 :author: Bharath Kumar S P
 :email: bharath030195@gmail.com
@@ -6,7 +6,7 @@
 :eqnums:
 :toc:
 
-== Artificial Neural Network ==
+== Why a Network Model? ==
 In machine learning, we mathematically generate linear models (linear with respect to the parameters stem:[w_1, \dots, w_M]). These models are linear combinations of fixed basis functions stem:[\phi_1(\mathbf{x}), \dots, \phi_M(\mathbf{x})].
 
 [stem]
@@ -50,43 +50,82 @@ Neural Networks are supervised learning techniques. ANNs are applications of fee
 * The number of nodes in the input layer is determined by the number of features in the data.
 * The number of nodes in the output layer is determined by the number of target values in the data.
 * The number of nodes in the hidden layer is a hyperparameter. This ANN has a total of 9 nodes (each node can be given a number).
-* This network is said to have two layers (input to hidden, hidden to output) or one hidden layer.
-* The largest number of steps from input to output defines the depth of the network, the depth of this network is 2. 
+* This network is said to have two layers (input to hidden, hidden to output) or one hidden layer. The below network is called as a two-layer network, because it is the number of layers of adaptive weights that is important for determining the network properties. Whenever there is a transformation, we can call it as a layer. The neural network is also known as the multilayer perceptron, or MLP.
+* Depth of a ANN: How deep is the output from the input? The maximum number of steps from input to reach output defines the depth of the network, the depth of this network is 2. 
 
 image::.\images\ann_structure_01.png[align='center', 700, 500]
 
 The components of ANN are
 
-* *Artificial neuron:*
-+
+=== Artificial neuron ===
+
 The nodes in the input layer pass the input signal as is to the upper node. The nodes in the hidden layer and output layer add all input signals received from lower nodes, convert the result using function stem:[f], and output it. A bias node is connected to each node in the hidden layer and output layer. This always outputs 1.
 
-* *Connection weights*:
-+
+=== Connection weights ===
 Connect two nodes stem:[(i,j)] with a weight stem:[w] or stem:[b]. The output of the lower neuron is multiplied by the weight and passed to the upper neuron. The weights stem:[w] and stem:[b] can be considered as the synaptic gap, i.e. the small gap between the output of the lower neuron and the input of the higher neuron.
-+
+
 ** When stem:[w] or stem:[b] is small, i.e. when the gap is wide, only a small portion of the information from the lower neuron is passed on to the upper neuron.
 ** When stem:[w] is large, i.e. when the gap is narrow, much of the information is passed on to the upper neuron.
-+
+
 Input signal (or total amount of information received) of neuron 6 stem:[= x_1 * w_{06} + x_2 * w_{16} + 1 * b_{23}]
-+
+
 stem:[w_{ij}] and stem:[b_{ij}] denotes the connection weight between node stem:[i] and node stem:[j]. If stem:[w_{06}=0.1], only 10% of the input signal stem:[x_1] is passed to the upper node. 
 
-* *Activation function*:
-+
+=== Activation function ===
 Each neuron has a activation function which controls the output size of the neuron. Neurons in the hidden layer use non-linear activation function stem:[f_h], and neurons in the output layer use linear or non-linear activation function stem:[f_o].
-+
+
 Output signal of neuron 6 stem:[= f_h(x_1 * w_{06} + x_2 * w_{16} + 1 * b_{23})]
-+
+
 Activation function is used to convert the output of a neuron into a desired range of values. For example, in the case of binary classification, a sigmoid function or a hyperbolic tangent is used in the output layer because the output value must be between 0 and 1, or between -1 and +1. And in the case of regression, a linear function is used because the output value should not change.
-+
+
 Another purpose of the activation function is to introduce non-linearity into the hidden layer. If we do not use an activation function or use a linear function in the hidden layer, the network behaves as a single-layer neural network. For non-linear learning, a non-linear function must be used in the hidden layer.
-+
+
 ReLU (Rectified Linear Unit), tanh, leaky ReLU, softplus, etc. are used in the hidden layer for non-linear learning. ReLU is most widely used in the hidden layer.
-+
+
 image::.\images\activation_functions.png[align='center', 700, 500]
 
+In the output neuron, the type of activation used depends on our problem:
 
+* For standard regression problems, the activation function is the identity, stem:[y_k = a_k].
+* For multiple binary classification problems, each output unit activation is transformed using a logistic sigmoid function, stem:[y_k = \sigma(a_k)].
+* For multiclass problems, a softmax activation function is used.
 
+== Notations ==
+Consider a MLP network as below:
+
+.Image Source: http://neuralnetworksanddeeplearning.com/chap2.html[Chapter 2 in Michael Nielson's NNDL textbook]
+image::.\images\sample_mlp.png[align='center', 300, 300]
+
+* stem:[w^l_{jk}] is the weight connecting to the stem:[l]th layer, that connects the stem:[j]th neuron in the stem:[l]th layer and stem:[k]th neuron in the stem:[l-1]th layer.
+* stem:[b^l_j] is the bias of the stem:[j]th neuron in the stem:[l]th layer.
+* stem:[x^l_j] is the output of the stem:[j]th neuron in stem:[l]th layer. stem:[\sigma(.)] is the activation function.
++
+[stem]
+++++
+x^l_j = \sigma\left( \sum_k w^l_{jk} x^{l-1}_k + b^l_j \right)
+++++
++
+where the sum is over all neurons stem:[k] in the stem:[(l-1)]th layer.
+
+* Vector of activations (or, biases) at layer stem:[l] is denoted by a bold-faced stem:[\mathbf{x}^l] (or stem:[\mathbf{b}^l]) and stem:[\mathbf{W}^l] is the weight matrix connecting to the stem:[l]th layer. Weights connecting to the first neuron of the stem:[l]th layer forms the first row in the matrix, weights connecting to the second neuron forms the second row, etc. The entry in the stem:[j]th row and stem:[k]th column is stem:[w^l_{jk}].
++
+Say we have stem:[J] neurons in the stem:[l]th layer and stem:[K] neurons in the stem:[(l-1)]th layer. Then matrix stem:[\mathbf{W}^l] will be of size stem:[J \times K]. stem:[\mathbf{x}^l] will be stem:[K \times 1] and stem:[\mathbf{b}^l] will be stem:[J \times 1].
++
+NOTE: All these stem:[\mathbf{x}^l, \mathbf{b}^l, \mathbf{W}^l ] are defined for each layer stem:[l]. And stem:[\sigma(.)] is applied element-wise.
++
+[stem]
+++++
+\mathbf{x}^l = \sigma\left( \mathbf{W}^l \mathbf{x}^{l-1} + \mathbf{b}^l \right)
+++++
+
+* stem:[s^l_j] is the weighted input to the stem:[j]th neuron in the stem:[l]th layer. This quantity refers to pre-activation.
++
+[stem]
+++++
+\begin{align*}
+s^l_j & =  \sum_k w^l_{jk} x^{l-1}_k + b^l_j && \text{for the } j \text{th neuron in the } l \text{th layer} \\
+\mathbf{s}^l & =  \mathbf{W}^l \mathbf{x}^{l-1} + \mathbf{b}^l && \text{for the } l \text{th layer}  \\
+\end{align*}
+++++
 
 

@@ -1,0 +1,193 @@
+= Backpropagation =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+:figure-caption!:
+
+How can we apply the gradient descent algorithm to learn the parameters of a neural networks?
+
+== Prediction Using a Neural Network ==
+There are two steps in the operations of ANN: Forward propagation and backpropagation. The ANN training process requires both steps, but the prediction process requires only the forward propagation step.
+
+Say we are given some values for our weights stem:[w^l_{jk}] and biases stem:[b^l_j], then we can use the network to make predictions.
+
+[stem]
+++++
+\mathbf{x}^0 \xrightarrow{ \,\, \mathbf{W}^1, \mathbf{b}^1 \,\, } \mathbf{s}^1 \xrightarrow{ \,\,\, \sigma \,\,\, } \mathbf{x}^1 
+\xrightarrow{ \,\, \mathbf{W}^2, \mathbf{b}^2 \,\, } \mathbf{s}^2 \dots \mathbf{x}^{L-1}
+\xrightarrow{ \,\, \mathbf{W}^L, \mathbf{b}^L \,\, } \mathbf{s}^L \xrightarrow{ \,\,\, \sigma \,\,\, } \mathbf{x}^L
+++++
+
+where
+
+* stem:[\mathbf{x}^0 = \mathbf{x}] is the input to the network.
+* stem:[\mathbf{x}^L = f(\mathbf{x}; \mathbf{W}, \mathbf{b} )] is the output from the network. This will be a vector in the case of multivariate output, or a scalar otherwise. And stem:[L] is the total number of layers in the network.
+* stem:[\mathbf{s}^l =  \mathbf{W}^l \mathbf{x}^{l-1} + \mathbf{b}^l] and stem:[\mathbf{x}^l = \sigma(\mathbf{s}^l)] for all stem:[l=1,\dots, L].
+
+This operation is known as *forward-pass* operation. Given the weights and biases, we pass the input to the network, traverse through the network in the forward direction and get the output.
+
+But how do we find the optimal value of the weights and biases?
+
+== Training a Neural Network ==
+Say we are given a training dataset stem:[\mathcal{D}=\{(\mathbf{x}_n, y_n)\}_{n=1}^N].
+
+Having set up a neural network, we need to find the optimal weights stem:[w^l_{jk}] and biases stem:[b^l_j] for all layers such that the network learns the mapping from inputs to outputs for the given data. How do we go about this?
+
+. First, we define a loss function for the network. The loss function will be a function of parameters stem:[\mathbf{W}] and stem:[\mathbf{b}].
++
+[stem]
+++++
+\mathcal{L}(\mathbf{W}, \mathbf{b}) = \sum_{n=1}^N l(f(\mathbf{x}_n; \mathbf{W}, \mathbf{b} ), y_n)
+++++
++
+where stem:[f(\mathbf{x}_n; \mathbf{W}, \mathbf{b})] is the output from the network, stem:[y_n] is the actual truth, and stem:[l(f(\mathbf{x}_n), y_n)] is the loss from the stem:[n]th data point (also often denoted as stem:[l_n]).
+
+. Second, our goal is to find a stem:[\mathbf{W}^*] and stem:[\mathbf{b}^*] that minimize this loss function stem:[\mathcal{L}]. We can use the gradient descent algorithm to find the optimal values. The gradient descent algorithm updates the parameter at each step using the below update equation:
++
+[stem]
+++++
+w^{t+1} = w^t - \eta \frac{\partial \mathcal{L}}{\partial w}
+++++
++
+We should apply gradient descent for all the parameters. Therefore, we need to compute
++
+[stem]
+++++
+\frac{\partial \mathcal{L}}{\partial w^l_{jk}} \,\, \text{ and } \,\, \frac{\partial \mathcal{L}}{\partial b^l_j} \,\, \text{for all layers } l 
+++++
+
+An efficient algorithm to compute these partial derivatives in a neural network is the *Backpropagation* algorithm.
+
+== Backpropagation Algorithm ==
+Backpropagation is an algorithm for computing gradients in neural networks. The backpropagation algorithm was originally introduced in the 1970s, but its importance wasn't fully appreciated until a famous 1986 paper by David Rumelhart, Geoffrey Hinton, and Ronald Williams. Today, the backpropagation algorithm is the workhorse of learning in neural networks.
+
+The algorithm helps us find the partial derivative stem:[\frac{\partial L}{\partial w}] of the loss function stem:[L] with respect to any weight stem:[w] or bias stem:[b] in the network. The expression tells us how quickly the loss changes when we change the weights and biases.
+
+=== A Basic Neural Network ===
+We are given a set of input features and target stem:[\{(\mathbf{x}_n, t_n)\}_{n=1}^N], where stem:[\mathbf{x}_n \in \mathbb{R}^D] and stem:[t_n \in \mathbb{R}]. Assume we want to build a neural network as below:
+
+image::.\images\backprop_network.png[align='center']
+
+We have stem:[J] linear combinations of the input features in the 1st layer, so we get stem:[J] basis functions. Note: activation stem:[\mathbf{s}] is a linear function which is passed through a non-linear function stem:[\sigma] to form a basis function. In the second layer, we have stem:[K] linear combinations of stem:[\{x^1_1, x^1_2, \dots, x^1_J\}], and so on.
+
+Once the training is complete, stem:[\mathbf{W}^3, \mathbf{W}^2, \mathbf{W}^1, \mathbf{b}^3, \mathbf{b}^2, \mathbf{b}^1 ] are determined and the network is ready to make predictions. Assuming we have these parameter values, the forward pass operation can be visualized as below. Starting with the input vector stem:[\mathbf{x}^0]:
+
+image::.\images\forward_pass.png[align='center']
+
+[stem]
+++++
+\begin{align*}
+\mathbf{s}^1 & = \mathbf{W}^1 \mathbf{x}^0 + \mathbf{b}^1 \\
+\mathbf{x}^1 & = \sigma(\mathbf{s}^1) \\
+\mathbf{s}^2 & = \mathbf{W}^2 \mathbf{x}^1 + \mathbf{b}^2 \\
+\mathbf{x}^2 & = \sigma(\mathbf{s}^2) \\
+\mathbf{s}^3 & = \mathbf{W}^3 \mathbf{x}^2 + \mathbf{b}^3 \\
+\hat{y} & = \sigma(\mathbf{s}^3) \\
+\end{align*}
+++++
+
+=== Number of Parameters ===
+There are stem:[(J \times D) + (K \times J) + K] weight parameters and stem:[J + K + 1] bias parameters. For stem:[D=784, J=16, K=16], this results in stem:[(16 \times 784) + (16 \times 16) + 16] weight parameters and stem:[16 + 16 + 1] bias parameters. In total, there are 12,849 parameters.
+
+We need to learn all these parameters, but the number of layers and the number of nodes in each layer are hyperparameters which should be tuned through cross-validation.
+
+To optimize the parameters, we use the gradient descent algorithm, which requires computing the gradient of the loss with respect to all parameters: stem:[\mathbf{W}^3, \mathbf{W}^2, \mathbf{W}^1, \mathbf{b}^3, \mathbf{b}^2, \mathbf{b}^1 ].
+
+We first compute the gradient of the loss with respect to the inputs stem:[\mathbf{s}^3, \mathbf{s}^2, \mathbf{s}^1, \mathbf{x}^2, \mathbf{x}^1, \mathbf{x}^0]. These gradients facilitate the computation of gradients with respect to the parameters.
+
+=== Backward Pass ===
+Let's reiterate the series of operations in the forward direction:
+
+[stem]
+++++
+\begin{align*}
+\mathbf{s}^1 & = \mathbf{W}^1 \mathbf{x}^0 + \mathbf{b}^1 \\
+\mathbf{x}^1 & = \sigma(\mathbf{s}^1) \\
+\mathbf{s}^2 & = \mathbf{W}^2 \mathbf{x}^1 + \mathbf{b}^2 \\
+\mathbf{x}^2 & = \sigma(\mathbf{s}^2) \\
+\mathbf{s}^3 & = \mathbf{W}^3 \mathbf{x}^2 + \mathbf{b}^3 \\
+\hat{y} & = \sigma(\mathbf{s}^3) \\
+\end{align*}
+++++
+
+Now, we traverse the network backward to compute all gradients in a single pass. We start with the derivation of the loss with respect to the network's output stem:[\frac{\partial l}{\partial \hat{y}}]. Then changing stem:[\mathbf{s}^3] changes stem:[\hat{y}], which inturn changes stem:[l]. So
+
+image::.\images\backward_pass_input_01.png[align='center', 700, 500]
+
+The same can be visualized
+
+image::.\images\backward_pass_input.png[align='center']
+
+Similarly, we can also find the gradient with respect to the parameters
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial l}{\partial \mathbf{b}^3 } & = \frac{\partial l}{\partial \mathbf{s}^3 } \cdot \frac{\partial \mathbf{s}^3}{\partial \mathbf{b}^3 } && = \frac{\partial l}{\partial \mathbf{s}^3 } \\
+\\
+\frac{\partial l}{\partial \mathbf{W}^3 } & = \frac{\partial l}{\partial \mathbf{s}^3 } \cdot \frac{\partial \mathbf{s}^3 }{\partial \mathbf{W}^3 } && =  \frac{\partial l}{\partial \mathbf{s}^3 } \cdot (\mathbf{x}^2)^\top  \\
+\\
+\frac{\partial l}{\partial \mathbf{b}^2 } & = \frac{\partial l}{\partial \mathbf{s}^2 } \cdot \frac{\partial \mathbf{s}^2  }{\partial \mathbf{b}^2 } && = \frac{\partial l}{\partial \mathbf{s}^2 } \\
+\\
+\frac{\partial l}{\partial \mathbf{W}^2 } & = \frac{\partial l}{\partial \mathbf{s}^2 } \cdot \frac{\partial \mathbf{s}^2 }{\partial \mathbf{W}^2 } && = \frac{\partial l}{\partial \mathbf{s}^2 } \cdot (\mathbf{x}^1)^\top  \\
+\\
+\frac{\partial l}{\partial \mathbf{b}^1 } & = \frac{\partial l}{\partial \mathbf{s}^1 } \cdot \frac{\partial \mathbf{s}^1  }{\partial \mathbf{b}^1 } && = \frac{\partial l}{\partial \mathbf{s}^1 } \\
+\\
+\frac{\partial l}{\partial \mathbf{W}^1 } & = \frac{\partial l}{\partial \mathbf{s}^1 } \cdot \frac{\partial \mathbf{s}^1 }{\partial \mathbf{W}^1 } && = \frac{\partial l}{\partial \mathbf{s}^1 } \cdot (\mathbf{x}^0)^\top 
+\end{align*}
+++++
+
+IMPORTANT: Here we perform outer product of the vectors. Refer to the code implementation for details.
+
+The resulting quantities are all matrices and vectors:
+
+[stem]
+++++
+\frac{\partial l}{\partial \mathbf{W}^1} = \begin{bmatrix}
+\frac{\partial l}{\partial w^1_{11}} & \dots & \frac{\partial l}{\partial w^1_{1D}}  \\
+\vdots  & \dots & \vdots\\
+\frac{\partial l}{\partial w^1_{J1}} & \dots & \frac{\partial l}{\partial w^1_{JD}}  \\
+\end{bmatrix} \hspace{1cm} 
+
+\frac{\partial l}{\partial \mathbf{W}^2} = \begin{bmatrix}
+\frac{\partial l}{\partial w^2_{11}} & \dots & \frac{\partial l}{\partial w^2_{1J}}  \\
+\vdots  & \dots & \vdots\\
+\frac{\partial l}{\partial w^2_{K1}} & \dots & \frac{\partial l}{\partial w^2_{KJ}}  \\
+\end{bmatrix} \hspace{1cm} 
+
+\frac{\partial l}{\partial \mathbf{W}^3} = \begin{bmatrix}
+\frac{\partial l}{\partial w^3_{11}} & \dots & \frac{\partial l}{\partial w^3_{1K}}  \\
+\end{bmatrix}
+++++
+
+[stem]
+++++
+\frac{\partial l}{\partial \mathbf{b}^1} = \begin{bmatrix}
+\frac{\partial l}{\partial s^1_1} \\
+\vdots  \\
+\frac{\partial l}{\partial s^1_J}  \\
+\end{bmatrix} \hspace{1cm} 
+
+\frac{\partial l}{\partial \mathbf{b}^2} = \begin{bmatrix}
+\frac{\partial l}{\partial s^2_1}  \\
+\vdots \\
+\frac{\partial l}{\partial s^2_K}  \\
+\end{bmatrix} \hspace{1cm} 
+
+\frac{\partial l}{\partial \mathbf{b}^3} = \begin{bmatrix}
+\frac{\partial l}{\partial s^3_1} \\
+\end{bmatrix}
+++++
+
+Now, we have the gradient with respect to all the parameters. We can use these in the update equation of the gradient descent.
+
+[stem]
+++++
+\begin{align*}
+\mathbf{W}^l & = \mathbf{W}^l - \eta \frac{\partial l}{\partial \mathbf{W}^l} \\
+\mathbf{b}^l & = \mathbf{b}^l - \eta \frac{\partial l}{\partial \mathbf{b}^l} \\
+\end{align*}
+++++
+
+Here, the network's operations are shown for a single data point case. In practice, we can use the same network for batch processing with little modification to the order of operations such as matrix-vector multiplications, outer product, etc. Refer to the code below for both cases.

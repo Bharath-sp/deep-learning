@@ -1,0 +1,77 @@
+= Representation Power of MLP =
+:doctype: book
+:author: Bharath Kumar S P
+:email: bharath030195@gmail.com
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+We know that any Boolean function of stem:[n] inputs can be exactly represented with one hidden layer with a maximum of 2^{N-1} neurons. Boolean functions take binary inputs and gives binary outputs. MLP that we saw in our previous article can take real inputs, but gives only binary outputs.
+
+Many real world problems have non-binary outputs. Can MLPs represent real functions?
+
+== Universal Approximation ==
+
+====
+We can represent any continuous function stem:[f:\mathbb{R}^n \rightarrow \mathbb{R}^m] to any desired approximation stem:[\|g(\mathbf{x}) - f(\mathbf{x})\| < \boldsymbol{\epsilon}] for all stem:[\mathbf{x}] with a linear combination of sigmoid neurons (in the hidden layer and the output layer). In other words, neural networks with a single hidden layer can be used to approximate any continuous function to any desired precision.
+====
+
+The theorem says the below network structure with enough neurons in a single hidden layer will be able to approximate any continuous function. By increasing the number of hidden neurons we can improve the approximation.
+
+image::.\images\UAT_00.png[align='center', 400, 300]
+
+NOTE: If a function is discontinuous, i.e., makes sudden, sharp jumps, then it won't in general be possible to approximate using a neural net. Neural networks compute continuous functions of their input. However, even if the function we would like to compute is discontinuous, it's often the case that a continuous approximation is good enough. If that's so, then we can use a neural network.
+
+=== Scalar Input and Scalar Output ===
+No matter what the function, there is guaranteed to be a neural network so that for every possible input, stem:[x], the value stem:[f(x)] or some close approximation is output from the network. Say we want to model this function, stem:[y=f(x)], where stem:[x,y \in \mathbb{R}].
+
+image::.\images\uat_scalar_00.png[align='center', 300, 200]
+
+Let's consider a network that has two hidden units and one output unit. We have sigmoid activation function in all the units.
+
+image::.\images\uat_scalar_01.png[align='center', 500, 300]
+
+The parameters stem:[w_1] and stem:[b_1] can be tweaked to get different shape of the output and position of the step, respectively from the top hidden neuron. The larger the stem:[w_1], the steeper the function will be. For example, when stem:[w_1=34, b_1=-4] (left) and stem:[w_1=999, b_1=-400] (right).
+
+image::.\images\uat_scalar_02.png[align='center', 500, 300]
+
+With a single sigmoid neuron, we are able to approximate a step function. It's actually quite a bit easier to work with step functions than general sigmoid functions. The reason is that in the output layer we add up contributions from all the hidden neurons. It's easy to analyze the sum of a bunch of step functions, but rather more difficult to reason about what happens when you add up a bunch of sigmoid shaped curves.
+
+The sigmoid function stem:[\sigma(x)] raises from 0 to 1, and it will be 0.5 at stem:[x=0]. Here our input to the sigmoid is stem:[wx+b], so the step happens at stem:[x=-\frac{b}{w}]. The larger the stem:[w], the steeper the function will be. Bias stem:[b] is responsible for the position of the step. Keep stem:[w] large and vary stem:[b] to change the step position.
+
+To simplify the notation, we can describe each hidden neuron with a single parameter stem:[s=-\frac{b}{w}] (step point), based on the weight and the bias it is connected to.
+
+image::.\images\uat_scalar_03.png[align='center', 800, 500]
+
+Now let's take a look at the behavior of the entire network. By tweaking the parameter stem:[s], we will be able to change the output of each hidden neuron. Assume a network as below. What's being plotted on the right is the weighted output stem:[w_1a_1 + w_2a_2] from the hidden layer, where stem:[a_1] and stem:[a_2] are the outputs from the top and bottom hidden neurons, respectively.
+
+image::.\images\uat_scalar_04.png[align='center', 600, 400]
+
+With this setup, we can tweak the parameters stem:[w_1] and stem:[w_2] to output a pulse/tower of desired width and height.
+
+image::.\images\uat_scalar_05.png[align='center', 600, 400]
+
+For this to happen, both stem:[w_1=-w_2 = h]. For different stem:[h], we can set different heights for each pulse. It is also possible to realize the pulse in the opposite direction by setting stem:[h] to negative. By adding more neurons in the hidden layer in the same network, we can create more such pulses.
+
+image::.\images\uat_scalar_06.png[align='center', 500, 400]
+
+The first two neurons are for the first pulse, and the other two is for the second pulse. More generally, we can use this idea to get as many peaks as we want, of any height.
+
+We can divide the interval stem:[[0,1\]] up into a large number, stem:[N], of subintervals, and use stem:[N] pairs of hidden neurons to set up peaks of any desired height. For stem:[N=5]
+
+image::.\images\uat_scalar_07.png[align='center', 500, 700]
+
+We have been analyzing the weighted combination stem:[\sum_j a_jw_j] output from the hidden neurons, but this quantity is not what's output from the network. The output from the network is stem:[\sigma(\sum_j a_jw_j +b)], where stem:[b] is the bias on the output neuron. Bias is set to 0 in the above network.
+
+Is there some way we can achieve control over the actual output from the network? The solution is to design a neural network whose hidden layer has a weighted output given by stem:[\sigma^{-1}(f(x))].
+
+image::.\images\uat_scalar_08.png[align='center', 500, 300]
+
+If we can do this, then the output from the network as a whole will be a good approximation to stem:[f(x)].
+
+The quality of the approximation can be improved by increasing the number of hidden neurons. For each pulse, we need two neurons. So the number of neurons in the hidden layer will grow depending upon the variations in stem:[f(x)] and the precision we need. As we reduce the width of the pulse, the size of the hidden layer (the number of neurons) will increase.
+
+== References ==
+. Nielsen, M. A. (2015b). Neural networks and deep learning. http://neuralnetworksanddeeplearning.com/chap4.html
+. Figures are from Michael Nielsen's NNDL textbook.

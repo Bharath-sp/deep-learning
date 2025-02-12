@@ -1,10 +1,11 @@
 = Perceptron =
 :doctype: book
-:author: Bharath Kumar S P
-:email: bharath030195@gmail.com
 :stem: latexmath
+:figure-caption!:
 :eqnums:
 :toc:
+
+Can a simple algorithm mimic how we think and make decisions? Enter the Perceptron - a groundbreaking idea that transformed AI. But how does this single-layer model draw the line between decisions?
 
 == What is a Perceptron? ==
 In 1957, Frank Rosenblatt came up with a more generic model. This model also performs linear classification, but the inputs can be real stem:[-\infty] to stem:[\infty] and different weights can be given to different input components. This model gives us a mechanism to provide more importance to some inputs and less to others. And also a mechanism to learn the weights.
@@ -29,9 +30,16 @@ f(\mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b)
 
 In general, stem:[\sigma(.)] is called as activation function. Here we have used a step function. A single Perceptron can be described as
 
-image::.\images\perceptron_02.png[align='center',  500, 400]
+[.text-right]
+.Figure Credit: DeepAI
+image::.\images\perceptron_02.png[align='center',  500, 400, tit]["Mesa Verde Sunset, by JAVH"]
 
-Here stem:[w_0 = b] and stem:[x_0=1]. The bias term denotes the overall bias in the output when all the inputs are zero.
+The bias term denotes the overall bias in the output when all the inputs are zero. We can consider stem:[w_0 = b] and stem:[x_0=1]. Doing so, we convert the affine function into a linear function by augmenting the data with one more dimension.
+
+[stem]
+++++
+f(\mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x}) \hspace{1cm} \text{where } \mathbf{w}, \mathbf{x} \in \mathbb{R}^{D+1}
+++++
 
 == Perceptron Learning Algorithm ==
 It is a supervised learning algorithm. We are given a training data stem:[\{(\mathbf{x}_i, t_i)\}_{i=1}^N], where stem:[\mathbf{x}_i \in \mathbb{R}^D] and stem:[t_i \in \{-1,1\}]. Let stem:[k] capture the number of updates.
@@ -58,7 +66,7 @@ We know stem:[\mathbf{w}_k^\top \mathbf{x}_i = \mathbf{\tilde{w}}_k^\top \mathbf
 * stem:[\mathbf{w} = (w_0, w_1, \dots, w_D)] and stem:[\mathbf{x} \in \mathbf{R}^{D+1}] in the LHS.
 * stem:[\mathbf{\tilde{w}} = (w_1, \dots, w_D)] and stem:[\mathbf{x} \in \mathbf{R}^D] in the RHS.
 
-The decision surface stem:[\mathbf{w}_k^\top \mathbf{x}_i], shown in blue, is always perpendicular to stem:[\mathbf{\tilde{w}}_k] and its displacement from the origin is controlled by the bias parameter stem:[w_0].
+The decision surface stem:[\mathbf{w}_k^\top \mathbf{x}_i = 0], shown in blue, is always perpendicular to stem:[\mathbf{\tilde{w}}_k] and its displacement from the origin is controlled by the bias parameter stem:[w_0].
 
 image::.\images\perceptron_03.png[align='center',  400, 300]
 

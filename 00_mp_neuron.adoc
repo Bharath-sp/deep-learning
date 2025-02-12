@@ -1,10 +1,10 @@
 = MP Neuron =
 :doctype: book
-:author: Bharath Kumar S P
-:email: bharath030195@gmail.com
 :stem: latexmath
 :eqnums:
 :toc:
+
+Ever wondered how machines mimic human brains? With just a sprinkle of binary magic and logical gates, these simple models laid the foundation for today's deep learning marvels. 
 
 == Introduction ==
 The basic bulding block of deep neural networks is the artificial neuron. We try to emulate human brain. Human brain has around 80-100 billion neurons. It is a network of many neurons. Different parts of our brain specializes in different inference mechanisms, for example, some of them are responsible for motor skills, some are for analytical skills, artistic skills, etc.
@@ -12,7 +12,7 @@ The basic bulding block of deep neural networks is the artificial neuron. We try
 In deep learning, we try to model this complex information procesing system from our understanding of the humain brain.
 
 == What is a MP Neuron? ==
-We first model the basic unit, which is a neuron. In 1943, McCulloch and Pitts (MP) proposed a threshold logic unit which is the first mathematical model for a neuron. This is called as MP neuron. This is a very simple model whose inputs and output are Boolean.
+The basic unit of a neural network is a neuron. In 1943, McCulloch and Pitts (MP) proposed a threshold logic unit which is the first mathematical model for a neuron. This is called as MP neuron. This is a very simple model whose inputs and output are Boolean.
 
 image::.\images\mp_neuron_01.png[align='center', 300, 200]
 
@@ -37,7 +37,7 @@ We can make signals either excitatory or inhibitory, and we can change the thres
 
 Say we want to model stem:[f(x,y) = x.y'] using a MP neuron. Note stem:[.] is the logical AND operator.
 
-image::.\images\mp_neuron_2.png[align='center', 500, 300]
+image::.\images\mp_neuron_02.png[align='center', 500, 300]
 
 stem:[X] and stem:[Y] are our inputs and we need to realize stem:[X.Y']. Say we set stem:[X] as excitatory and stem:[Y] as inhibitory signals.
 
@@ -69,9 +69,16 @@ image::.\images\mp_neuron_04.png[align='center',  500, 300]
 
 Thus we can model this relation with the neuron (on the right side) with a threshold value of 0. This is infact X NOR Y logic function.
 
-=== What one unit does? ===
-The unit has a threshold logic unit which does stem:[\sum_i x_i \geq \theta]. It sets a threshold or boundary stem:[\sum_i x_i = \theta]. For a two variable case, this will be a line stem:[x_1 + x_2 = 0]. For three variables, it will a plane. For more than three, it will be a hyperplane. It basically creates a linear separation in the input space, i.e., a linear classifier.
+=== What does one unit do? ===
+The unit has a threshold logic unit which does stem:[\sum_i x_i \geq \theta]. It sets a threshold or boundary stem:[\sum_i x_i = \theta]. For a two variable case, this will be a line stem:[x_1 + x_2 - \theta = 0]. For three variables, it will a plane. For more than three, it will be a hyperplane. It basically creates a linear separation in the input space, i.e., a linear classifier.
 
 image::.\images\mp_neuron_05.png[align='center',  300, 300]
 
+CAUTION: Here the inputs take only binary values (0 or 1), a continuous boundary line is drawn only for illustration purpose.
+
 There is *no learning* here. It is a heuristic approach, not an algorithmic. We try different inputs and outputs, and set the threshold accordingly to realize a function. stem:[\theta] is the only parameter in this model. We could do hit and trial to find what threshold works only when the number of inputs is less and they take only binary values.
+
+== References ==
+. McCulloch-Pitts neurons. (n.d.). Retrieved January 26, 2025, from https://mind.ilstu.edu/curriculum/mcp_neurons/index.html
+
+Why do we look at logical reasoning and model the Boolean functions first? The answer can be found in the above mentioned source with an interesting example.

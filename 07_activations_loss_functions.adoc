@@ -1,0 +1,354 @@
+= Activation and Loss Functions =
+:doctype: book
+:author: Bharath Kumar S P
+:email: bharath030195@gmail.com
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+We can use neural networks to perform regression, binary classification, multi-label classification, and multi-class classification. But we have to choose a suitable output unit activation function and corresponsing error (or loss) function.
+
+== Regression ==
+In regression curve fitting, given a training set comprising a set of input vectors stem:[\{\mathbf{x}_n\}], where stem:[n=1,\dots, N], together with a corresponding set of target vectors stem:[\{\mathbf{t}_n\}], we minimise the error function
+
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \| \mathbf{y}(\mathbf{x}_n, \mathbf{w}) - \mathbf{t}_n \|^2
+++++
+
+NOTE: Here the output is a vector stem:[\mathbf{t}] with stem:[K] elements. stem:[n] denotes that it is for a given data point stem:[\{\mathbf{x}_n\}].
+
+This is a natural choice of error function when dealing with regression problems. Probabilistic interpretation provides us motivation for the choice of output unit non-linearity and the choice of error function.
+
+For the moment we consider a single target variable stem:[t] that can take any real value. We assume that the true output stem:[t] has a Gaussian distribution with an stem:[\mathbf{x}] dependent mean, stem:[t | \mathbf{x} \sim \mathcal{N}(\mathbf{x}^\top \mathbf{w}, \sigma^2)]
+
+[stem]
+++++
+p(t \,|\, \mathbf{x} , \mathbf{w}, \sigma) = \frac{1}{\sigma \sqrt{2\pi}} \text{exp} \left( - \frac{(t - \mathbf{x}^\top \mathbf{w})^2}{2\sigma^2} \right)
+++++
+
+This represents, "for a given data point stem:[\mathbf{x}] and parameters stem:[\mathbf{w}], how likely it is to observe stem:[t]?". We know stem:[(\mathbf{x},t)] from our training data set.
+
+Let consider stem:[\sigma^2 = \frac{1}{\beta}], where stem:[\beta] is the precision (inverse variance) of the Gaussian noise.
+
+Given a data set of stem:[N] i.i.d observations stem:[\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N \}], along with corresponding target values stem:[\mathbf{t} = \{t_1, \dots, t_N\}], we can construct the likelihood function
+
+[stem]
+++++
+L(\mathbf{w}) = p(\mathbf{t} \,|\, \mathbf{X} , \mathbf{w}, \beta) = \prod_{n=1}^N p(t_n \,|\, \mathbf{x}_n , \mathbf{w}, \beta)
+++++
+
+On taking the negative logarithm, we obtain the MSE error function
+
+[stem]
+++++
+- LL(\mathbf{w}) = \frac{\beta}{2} \sum_{n=1}^N \{ t_n - y(\mathbf{x}_n, \mathbf{w}) \}^2 -\frac{N}{2} \ln \beta + \frac{N}{2} \ln (2\pi)
+++++
+
+Consider the determination of optimal stem:[\mathbf{w}]: maximizing the likelihood function is equivalent to minimizing the sum-of-squares error function given (as other terms are constant)
+
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \{ t_n - y(\mathbf{x}_n, \mathbf{w}) \}^2
+++++
+
+Here we didn't transform the activation stem:[a] (the linear combination in the last layer) using any non-linear function, the activation itself is considered as our stem:[y(\mathbf{x}_n, \mathbf{w})]. So for regression in neural networks:
+
+* Output unit activation function: Identity function. stem:[y_k=a_k] for stem:[k = 1, \dots, K] target variables.
+* Error function: sum-of-squares error function
++
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \| \mathbf{y}(\mathbf{x}_n, \mathbf{w}) - \mathbf{t}_n \|^2 = E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \| \mathbf{y}_n - \mathbf{t}_n \|^2
+++++
+
++
+[stem]
+++++
+\mathbf{y} =
+\begin{bmatrix}
+y_1 \\
+y_2 \\
+\vdots \\
+y_K
+\end{bmatrix} \hspace{1cm}
+
+\mathbf{t} =
+\begin{bmatrix}
+t_1 \\
+t_2 \\
+\vdots \\
+t_K
+\end{bmatrix}
+++++
++
+stem:[n] subscript denotes that it is output from the input pattern stem:[\mathbf{x}_n].
+
++
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{2} \sum_{n=1}^N \sum_{k=1}^K \{y_{nk} - t_{nk}\}^2
+++++
+
++
+* stem:[y_{nk}] denotes stem:[y_k (\mathbf{x}_n, \mathbf{w})] - the predicted output for the stem:[k]th target variable for the input data point stem:[\mathbf{x}_n].
+* stem:[t_{nk}] denotes the true output for the stem:[k]th target variable for the input data point stem:[\mathbf{x}_n].
+
+== Binary Classification ==
+In the case of binary classification, we have a single target variable stem:[t] that takes two values 1 and 0 representing class stem:[\mathcal{C}_1] and class stem:[\mathcal{C}_2] respectively.
+
+Consider the output activation function as a logistic sigmoid:
+
+[stem]
+++++
+y(\mathbf{x}, \mathbf{w}) = \sigma(a) = \frac{1}{1 + \text{exp}(-a)}
+++++
+
+so that stem:[0 \leq y(\mathbf{x}, \mathbf{w}) \leq 1 ]. stem:[a] is the last layer linear combination of the previous layer outputs. We interpret this result stem:[y(\mathbf{x}, \mathbf{w})] as the probability of the data point stem:[\mathbf{x}] belonging to class stem:[\mathcal{C}_1]. To be specific, 
+
+* stem:[y(\mathbf{x}, \mathbf{w})] is stem:[p(\mathcal{C}_1 \, | \, \mathbf{x})].
+* stem:[1- y(\mathbf{x}, \mathbf{w})] is stem:[p(\mathcal{C}_2 \, | \, \mathbf{x})].
+
+*Probabilistic Interpretation:*
+
+We assume that the true output stem:[t] has a Bernoulli distribution with stem:[y(\mathbf{x}, \mathbf{w})] as the parameter.
+
+[stem]
+++++
+p(t | \mathbf{x}, \mathbf{w}) = y(\mathbf{x}, \mathbf{w})^t \{ 1- y(\mathbf{x}, \mathbf{w}) \}^{1-t}
+++++
+
+This represents, "for a given data point stem:[\mathbf{x}] and parameters stem:[\mathbf{w}], how likely it is to observe stem:[t]?". We know stem:[(\mathbf{x},t)] from our training data set.
+
+Given a data set of stem:[N] i.i.d observations stem:[\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N \}], along with corresponding target values stem:[\mathbf{t} = \{t_1, \dots, t_N\}], we can construct the likelihood function
+
+[stem]
+++++
+\begin{align*}
+L(\mathbf{w}) & = \prod_{n=1}^N p(t_n \,|\, \mathbf{x}_n , \mathbf{w}) \\
+& = \prod_{n=1}^N y(\mathbf{x}_n, \mathbf{w})^{t_n} \{ 1- y(\mathbf{x}_n, \mathbf{w}) \}^{1-t_n} = \prod_{n=1}^N y_n^{t_n} \{ 1- y_n \}^{1-t_n}
+\end{align*}
+++++
+
+Negative log likelihood is then given by
+
+[stem]
+++++
+- LL(\mathbf{w}) = - \sum_{n=1}^N \{t_n \, \ln \, y_n + (1-t_n) \, \ln \, (1-y_n) \}
+++++
+
+This is nothing but the cross-entropy error function:
+
+[stem]
+++++
+E(\mathbf{w}) = - \sum_{n=1}^N \{t_n \, \ln \, y_n + (1-t_n) \, \ln \, (1-y_n) \}
+++++
+
+So in the case of binary classification, the natural choice of output activation function can be *logistic sigmoid* and error function can be *cross-entropy* error function.
+
+== Multi-label Classification ==
+If we have stem:[K] separate binary classifications to perform, then we can use a network having stem:[K] outputs each of which has a *logistic sigmoid activation* function. Associated with each output is a binary class label stem:[t_k \in \{0,1\}], where stem:[k=1, \dots, K]. If we assume that the class labels are independent, given the input vector, then the conditional distribution of the targets is
+
+[stem]
+++++
+p(\mathbf{t} | \mathbf{x}, \mathbf{w}) = \prod_{k=1}^K y_k(\mathbf{x}, \mathbf{w})^{t_k} \{ 1- y_k(\mathbf{x}, \mathbf{w}) \}^{1-t_k}
+++++
+
+Taking the negative logarithm of the corresponding likelihood function then gives the following error function
+
+[stem]
+++++
+E(\mathbf{w}) = - \sum_{n=1}^N \sum_{k=1}^K \{t_{nk} \, \ln \, y_{nk} + (1-t_{nk}) \, \ln \, (1-y_{nk}) \}
+++++
+
+* stem:[y_{nk}] denotes stem:[y_k (\mathbf{x}_n, \mathbf{w})] - the predicted output for the stem:[k]th target variable for the input data point stem:[\mathbf{x}_n].
+* stem:[t_{nk}] denotes the true output for the stem:[k]th target variable for the input data point stem:[\mathbf{x}_n].
+
+== Multi-class Classification ==
+Here each input is assigned to one of stem:[K] mutually exclusive classes. The binary target variables stem:[t_k \in \{0,1\}] have a 1-of-stem:[K] coding scheme indicating the class, and the network outputs are interpreted as stem:[y_k(\mathbf{x}, \mathbf{w}) = p(t_k =1 \, | \, \mathbf{x} )] leading to the following error function
+
+[stem]
+++++
+E(\mathbf{w}) = - \sum_{n=1}^N \sum_{k=1}^K t_{nk} \, \ln \, y_{nk}
+++++
+
+We see that the output unit activation function, which corresponds to the canonical link, is given by a non-linear function called *softmax function*
+
+[stem]
+++++
+y_k(\mathbf{x}, \mathbf{w}) = \frac{\text{exp}(a_k(\mathbf{x}, \mathbf{w}))}{\sum_{j=1}^K \text{exp}(a_j(\mathbf{x}, \mathbf{w}))}
+++++
+
+Which satisfies stem:[0 \leq y_k \leq 1] and stem:[\sum_k y_k =1]. This is known as categorical cross-entropy loss function.
+
+Here the confidences stem:[a_k] that an input belong to classes stem:[k=1, \dots, K], where each stem:[a_k] can range between stem:[(-\infty, \infty)] are converted to probabilities using the softmax function.
+
+NOTE: On applying softmax, we have to look at all the output activations stem:[a_1, \dots, a_K] because of the normalization constant in the denominator of stem:[y_k(\mathbf{x}, \mathbf{w})].
+
+== Why Cross-Entropy is Used ==
+Let's understand cross entropy from the perspective of information theory. In information theory, the amount of information (or "surprise") associated with observing an event stem:[X=x] is inversely proportional to its probability stem:[p_X(x)].
+
+* The amount of information with high probability events is small. They are less surprising and carry less information.
+* The amount of information with low probability events is large. They are more surprising and carry more information.
+
+The information content (surprisal) of an event stem:[X=x] is a function that increases as the probability stem:[p_X(x)] of the event decreases. When stem:[p(x)] is close to 1, the surprisal of the event is low, but if stem:[p(x)] is close to 0, the surprisal of the event is high. This relationship is described by the function stem:[\log \frac{1}{p(x)}]. Hence, we can define the information of an event stem:[X=x] as
+
+[stem]
+++++
+I(X=x) = \log_2 \left( \frac{1}{p(x)} \right)
+++++
+
+The information content of a random variable as stem:[I(X) =  \log_2 \left( \frac{1}{p(X)} \right) = - \log_2(p(X))].
+
+CAUTION: The information content is measured for the probability distribution stem:[p_X(x)] of the random variable stem:[X], not directly for stem:[X] itself.
+
+=== Entropy ===
+Entropy of the probability distribution stem:[p] of a random variable is the average information content over all possible outcomes, weighted by their probabilities.
+
+Let stem:[X] be a discrete random variable which takes value in the set stem:[\mathcal{X}] and distributed according to stem:[p: \mathcal{X} \rightarrow [0,1\]] such that stem:[p(x):= P({X=x})]. The entropy of the probability distribution stem:[p] of random variable stem:[X] is a measure of average uncertainty or unpredictability associated with the random variable. It is defined as
+
+[stem]
+++++
+H(p) = H(X) = \mathbb{E}_X [ I(X)] = - \mathbb{E}_X [\log_2(p(X))] = - \sum_{x \in \mathcal{X}} p(x) \cdot \log_2(p(x))
+++++
+
+It quantifies the amount of information required, on average, to describe or encode the outcomes of the random variable.
+
+* If the random variable stem:[X] has high entropy, its outcomes are highly uncertain or spread out.
+* If stem:[X] has low entropy, its outcomes are predictable or concentrated around a single value.
+
+*Example:*
+
+. Let stem:[\mathcal{X} = \{0,1\}] and the probability distribution stem:[p=[0.5, 0.5\]]. Then entropy stem:[H(X) = -(0.5 \log 0.5 + 0.5 \log 0.5) = 1] bit. On average, we need 1 bit to describe the outcome of stem:[X].
+
+. Let stem:[\mathcal{X} = \{0,1\}] and the probability distribution stem:[q=[0.1, 0.9\]]. Then entropy stem:[H(X) = -(0.9 \log 0.9 + 0.1 \log 0.1) \approx 0.47] bits. On average, we need only 0.47 bits to describe the outcome of stem:[X].
+
+=== KL Divergence ===
+Say that the true class distribution is stem:[p_X(x)], the average amount of information needed to describe (stem:[x] under) stem:[p] is the entropy stem:[H(p)],
+
+[stem]
+++++
+H(p) = - \sum_x p(x) \cdot \log_2(p(x))
+++++
+
+This represents the true uncertainty in the probability distribution of stem:[X].
+
+If instead of the true distribution stem:[p_X(x)], we use the predicted distribution stem:[q_X(x)], then the amount of information needed to describe stem:[X] is stem:[- \log q_X(x)]. The average amount of information to describe the outcomes of the random variable stem:[X] or the probability distribution stem:[q] is
+
+[stem]
+++++
+H(q) =  - \mathbb{E}_X [\log_2(q(X))] = - \sum_x p(x) \cdot \log_2(q(x))
+++++
+
+The KL divergence measures the expected additional information required when using the predicted distribution stem:[q_X(x)] instead of the true distribution stem:[p_X(x)]. It is defined as
+
+[stem]
+++++
+D_{KL}(p \parallel q) = \mathbb{E}_X \left[ \log \frac{p_X(x)}{q_X(x)} \right] = - \sum_x p(x) \log q(x) + \sum_x p(x) \log p(x)
+++++
+
+For each possible outcome stem:[x], the difference stem:[\log p_X(x) - \log q_X(x) ] measures how much extra surprise is introduced by stem:[q] compared to stem:[p]. If stem:[q] matches stem:[p] perfectly, the KL divergence is 0 because no additional information is needed. The larger the divergence, the greater the inefficiency in using stem:[q] to describe the true distribution stem:[p]. The value of KL divergence will always be stem:[\geq 0].
+
+In machine learning, KL Divergence is the expected difference between the amount of information required in describing the random variable stem:[C] (which denotes classes) under the true distribution stem:[y] and the predicted distribution stem:[\hat{y}]. Here
+
+* stem:[y] is the actual class probability distribution. For example, say our target variable has three classes, stem:[C] takes three values, stem:[i=0,1,2]. Then for a data point, the actual distribution can be stem:[y= [1,0,0\]].
+* stem:[\hat{y}] is the predicted class probability distribution. For the data point, the predicted distribution can be stem:[\hat{y}= [0.7, 0.2, 0.1\]].
+
+The difference in the amount of information between stem:[y] and stem:[\hat{y}] is
+
+[stem]
+++++
+\Delta I = \log \frac{1}{\hat{y}} - \log \frac{1}{y} = - \log(\hat{y}) + \log(y)
+++++
+
+The smaller the difference, the more similar the two distributions are.
+
+[stem]
+++++
+D_{KL}(y \parallel \hat{y}) = \mathbb{E}_C[\Delta I] = - \sum_i y_i \log (\hat{y}_i) + \sum_i y_i \log (y_i)
+++++
+
+=== Cross-Entropy ===
+Minimizing KL divergence aligns predicted distribution stem:[\hat{y}] as closely as possible with the true distribution stem:[y]. Our predicted probability distribution stem:[\hat{y}] should be such that it should minimize the KL divergence.
+
+[stem]
+++++
+\min_{\hat{y}} D_{KL}(y \parallel \hat{y}) = \min_{\hat{y}} \left( - \sum_i y_i \log (\hat{y}_i) + \sum_i y_i \log (y_i) \right) = \min_{\hat{y}} \left( - \sum_i y_i \log (\hat{y}_i) \right)
+++++
+
+As the second term is independent of stem:[\hat{y}], it is a constant with respect to stem:[\hat{y}]. We know this is cross-entropy.
+
+[stem]
+++++
+CE = - \sum_i y_i \log (\hat{y}_i)
+++++
+
+Minimizing KL divergence is the same as minimizing CE. Minimizing CE makes the distributions stem:[y] and stem:[\hat{y}] similar, so it is very reasonable to use cross-entropy as the objective function in classification models.
+
+We can see that as CE gets smaller, the predicted probability stem:[\hat{y}] gets exponentially closer to the actual probability stem:[y]. For classes stem:[i=0,1,2]
+
+* For a data point, let's say the actual class probability distribution is stem:[y=[1,0,0\]] (one-hot encoded).
+* The predicted class probability distribution is stem:[\hat{y} = [0.7, 0.1, 0.2\]].
+* stem:[CE = - \sum_i y_i \log (\hat{y}_i)]
+
+Jensen's inequality of stem:[\log(X)] is
+
+[stem]
+++++
+\begin{align*}
+\log (\mathbb{E}[\hat{y}]) & \geq \mathbb{E}[ \log (\hat{y})] \\
+\log (\sum_i y_i \hat{y}_i) & \geq \sum_i y_i \log(\hat{y}_i) \\
+\log (\sum_i y_i \hat{y}_i) & \geq -CE \\
+\sum_i y_i \hat{y}_i & = 1*0.7 + 0*0.1 + 0*0.2 = 0.7 = P({y=\hat{y}}) \\
+\log (P({y=\hat{y}})) & \geq -CE  \\
+\end{align*}
+++++
+
+stem:[\sum_i y_i \hat{y}_i] denotes the probability that stem:[y] and stem:[\hat{y}] are the same. Making the CE smaller, increases the lower bound, and therefore increases the probability that stem:[\hat{y}] will be stem:[y].
+
+[stem]
+++++
+P({y=\hat{y}}) \geq e^{-CE} 
+++++
+
+As we make CE (the CE formula is as above) smaller, the probability that stem:[\hat{y}] becomes stem:[y] increases exponentially.
+
+== Summary ==
+
+* In regression analysis, the MSE is used as the loss function.
++
+[stem]
+++++
+L(\mathbf{w},b) = \frac{1}{N} \sum_{i=1}^N \frac{1}{2} (y_i - \hat{y}_i)^2
+++++
+
+* In binary classification, binary cross-entropy (BCE) is used.
++
+[stem]
+++++
+L(\mathbf{w},b) = - \frac{1}{N} \sum_{i=1}^N [y_i \log(\hat{y}_i) + (1-y_i) \log (1-\hat{y}_i)]
+++++
+
+* In multiclass classification, cross-entropy (CE) is used.
++
+[stem]
+++++
+L(\mathbf{w},b) = - \frac{1}{N} \sum_{i=1}^N \sum_{k=1}^C y_{i,k} \log(\hat{y}_{i,k})
+++++
++
+Where stem:[C] is the number of classes in stem:[y], and it is the number of neurons in the output layer.
+
+NOTE: stem:[y_i] and stem:[\hat{y}_i] are enough to calculate these loses.
+
+Regression uses a linear activation function for the neurons in the output layer, and binary classification uses a sigmoid activation function. And multiclass classification uses a softmax activation function.
+
+Our goal is to find the parameters stem:[\mathbf{w}] and stem:[b] that make the loss function as small as possible.
+
+[stem]
+++++
+\min_{\mathbf{w},b} L(\mathbf{w},b)
+++++
+
+NOTE: When the accuracy for two models A and B is the same, the model with a low BCE/CE or MSE is said to have better performance than the other model. For a data point with the actual target value 0, model A can have predicted probability 0.1 to get class 0, while model B can have 0.49 as the predicted probability to get class 0. In this case, model A will have low BCE.
+

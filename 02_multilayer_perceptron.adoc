@@ -14,9 +14,9 @@ image::.\images\xor_perceptron.png[align='center', 800, 500]
 The conditions cannot be satisfied for any stem:[w_0, w_1, w_2], this shows why a single perceptron couldn't model the XOR data. Let's increase the number of perceptrons.
 
 == Multi Layered Perceptrons ==
-Here we connect multiple perceptrons in a network fashion, thus it is called Multi Layered network of Perceptrons (MLP) or Multi Layered Perceptrons.
+Here we connect multiple perceptrons in a network fashion, thus it is called Multi Layered network of Perceptrons (MLP) or Multi Layered Perceptrons. We can learn non-linear functions using MLP.
 
-Consider four perceptrons with the configuration as below
+Consider five perceptrons with the configuration as below
 
 image::.\images\xor_perceptron_03.png[align='center', 600, 400]
 

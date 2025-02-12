@@ -1,7 +1,5 @@
 = Properties of ANN =
 :doctype: book
-:author: Bharath Kumar S P
-:email: bharath030195@gmail.com
 :stem: latexmath
 :eqnums:
 :toc:
@@ -65,3 +63,65 @@ Say stem:[f_{h,1}, f_{h,2}] are ReLU, their derivative is either 0 or 1. And whe
 To alleviate this problem, we can try lowering the learning rate and preventing the bias from becoming large. We can also try using the leaky ReLU or softplus activation function.
 
 image::.\images\activations_derivatives.png[align='center', 600, 500]
+
+== Network Architecture ==
+There are different ways to construct feed forward neural networks.
+
+* The network can be sparse, with not all possible connections within a layer being present (left figure). stem:[z_1] has connections only with few input variables.
+* Skip connects may be added (stem:[x_1] is directly connected to stem:[y_1] skipping the hidden layers, in the right figure).
+
+image::.\images\neural_network_04.png[align='center', 700, 500]
+
+These networks are called as feed forward neural networks (FFNN) because there are no loops, input is fed only in one direction (forward). And here the outputs, intermediate layers are *deterministic* functions of inputs.
+
+== Adaptable Basis Functions ==
+Illustration of the capability of a multilayer perceptron to approximate four different functions: stem:[f(x) = x^2], stem:[f(x) = sin(x)], stem:[f(x) = |x|], and stem:[f(x) = H(x)], where stem:[H(x)] is a Heaviside step function.
+
+In each case, stem:[N = 50] data points, shown as blue dots in the graph below, have been sampled uniformly in stem:[x] over the interval stem:[(-1, 1)] and the corresponding values of stem:[f(x)] evaluated. These data points are then used to train a two-layer network having 3 hidden units with `tanh` activation functions and a linear output unit.
+
+image::.\images\sample_neural_network.png[align='center', 600, 400]
+
+In total, there are 10 parameters, 6 weight and 4 bias parameters. The resulting network function stem:[y] is shown by the red curves, and the basis functions learnt by three hidden units stem:[(z_1, z_2, z_3)] are shown by the three dashed curves.
+
+image::.\images\nn_approximation.png[align='center', 500, 700]
+
+With the given simple network, we are able to learn different functions (by training on different data samples). This is achievable because the basis functions stem:[(z_1, z_2, z_3)] are adaptive, and learnt based on the data.
+
+== Weight-space Symmetries ==
+One property of feed-forward networks is that multiple distinct choices for the weight vector stem:[\mathbf{w}] can all give rise to the same mapping function from inputs to outputs. 
+
+Consider a two-layer network as below with stem:[M=3] hidden units having 'tanh' activation functions and full connectivity in both layers.
+
+image::.\images\sample_neural_network.png[align='center', 600, 400]
+
+If we change the sign of all of the weights and the bias feeding into a particular hidden unit, then, for a given input stem:[x], the sign of the activation of the hidden unit will be reversed, because 'tanh' is an odd function, so that stem:[tanh(-a) = - tanh(a)]. say we change the sign of stem:[w_0, w_1]. Then,
+
+[stem]
+++++
+z_1 = tanh(-w_0 -w_1x) = - tanh(w_0 + w_1x)
+++++
+
+This transformation can be exactly compensated by changing the sign of all of the weights leading out of that hidden unit. We change the sign of stem:[w_6]. Then the resulting stem:[y] remains the same. Thus, by changing the signs of a particular group of weights (and a bias), the input-output mapping function represented by the network is unchanged. So we have found two different weight vectors that give rise to the same mapping function.
+
+For stem:[M] hidden units, there will be stem:[M] such sign-flip symmetries, and thus any given weight vector will be one of stem:[2^M] equivalent weight vectors.
+
+Similarly, imagine that we interchange the values of all of the weights (and the bias) leading both into and out of a particular hidden unit with the corresponding
+values of the weights (and bias) associated with a different hidden unit. Let's define,
+
+[stem]
+++++
+\begin{align*}
+z_1 & = tanh(w_3x + w_2) \\
+z_2 & = tanh(w_1x + w_0) \\
+z_3 & = tanh(w_5x + w_4) \\
+y & = w_7 z_1  + w_6 z_2  + w_8 z_3 + w_9
+\end{align*}
+++++
+
+stem:[y] remains the same. Again, this clearly leaves the network input-output mapping function unchanged, but it corresponds to a different choice of weight vector. This amounts to arranging stem:[M] distint objects. For stem:[M] hidden units, any given weight vector will belong to a set of stem:[M!] equivalent weight vectors associated with this interchange symmetry.
+
+The network will therefore have an overall weight-space symmetry factor of stem:[M!2^M]. For networks with more than two layers of weights, the total level of symmetry will be given by the product of such factors, one for each layer of hidden units. 
+
+NOTE: the existence of these symmetries is not a particular property of the 'tanh' function but applies to a wide range of activation functions.
+
+Here we are learning the parameters in a high-dimensional space. In high-dimensional optimization, we get a lot of equivalent or similar local minima. So different sets of parameters gives us the same model performance. Even if we keep training data, number of layers, activations and other configurations the same and learn from a different random initialization, we may end up learning different basis functions.
