@@ -1,0 +1,43 @@
+= Weight Initialization =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Weight Initialization ==
+What if all the parameters are initialized to zero? Or, a different constant?
+
+*Constant Weights:*
+
+For the given data, all the neurons in that layer end up giving the same output leading to a lot of redundancy. This leads to a failure mode, known as the symmetry problem. We want each neuron to learn different features, hence we need different weight values.
+
+*Large Weights:*
+
+If the weights are set to very large values, we run into the problem of exploding gradients. When we have a network
+
+[stem]
+++++
+\mathbf{x}^{l-1} \xrightarrow{ \,\, \mathbf{W}^l, \mathbf{b}^l \,\, } \mathbf{s}^l \xrightarrow{ \,\,\, \sigma \,\,\, } \mathbf{x}^l
+++++
+
+stem:[\mathbf{s}^l = \mathbf{W}^l \mathbf{x}^{l-1} + \mathbf{b}^l ]. The gradient stem:[\frac{\partial \mathbf{s}^l}{\partial \mathbf{x}^{l-1}} = \mathbf{W}^l]. So when the weights are large, we end up multiplying the upstream gradient with a large value. If we repeat it across layers, the effect will be amplified, leading to gradient explosion. And this results in divergence and a very high loss value.
+
+*Small Weights:*
+
+If the weights are set to very small values, we run into the problem of vanishing gradients. Here we end up multiplying the upstream gradient with a small value. If we repeat it across layers, the effect will be amplified, leading to vanishing gradients. This results in zero value for gradient and no parameter updates. The learning will be stopped and the loss value remains the same as we progress.
+
+How to identify a good range for the weights?
+
+=== Random Initialization ===
+We generally initialize the weights randomly. Let stem:[d_l] be the number of neurons in the stem:[l]th layer and stem:[d_{l-1}] be the number of neurons in the stem:[(l-1)]th layer.
+
+[source, python]
+----
+W = 0.001 * np.random.randn(dl, dl-1)
+----
+
+We are sampling from stem:[\mathcal{N}(0,1)], and multiplying the samples by 0.001. This changes the standard deviation from 1 to 0.001 and the mean remains the same.
+
+
+
+

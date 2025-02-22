@@ -1,0 +1,121 @@
+= Vanishing Gradients =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Backpropagation Interpretation ==
+Let's take a simple neural network with one hidden layer and one neuron in each layer. And say we have ReLU activation function in the hidden layer and linear activation function in the output layer.
+
+image::.\images\backprop_single.png[align='center']
+
+The forward pass operation is
+
+[stem]
+++++
+\begin{align*}
+s_1^1 & = w_{11}^1 x^0_1 + b_1^1 \\
+x_1^1 & = \sigma(s_1^1) \\
+s_1^2 & = w_{11}^2 x^1_1 + b_1^2 \\
+\hat{y} & = \sigma(s_1^2) \\
+\end{align*}
+++++
+
+Let the loss function be stem:[l=\frac{1}{2} (\hat{y}-y)^2]. This network has 4 parameters. The backward gradient pass operation is 
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial l}{\partial \hat{y} } & = (\hat{y}-y) \\
+\\
+\frac{\partial l}{\partial s_1^2 } & = \frac{\partial l}{\partial \hat{y} } \cdot \frac{\partial \hat{y}}{\partial s_1^2 } = (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 }\\
+\\
+\frac{\partial l}{\partial x_1^1 } & = \frac{\partial l}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 } = (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 }\\
+\\
+\frac{\partial l}{\partial s_1^1 } & = \frac{\partial l}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } = (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } \\
+\\
+\frac{\partial l}{\partial x^0_1 } & = \frac{\partial l}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial x^0_1 } = (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial x^0_1 }\\
+\end{align*}
+++++
+
+Similarly, we can also find the gradient with respect to the parameters
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial l}{\partial b_1^2 } & = \frac{\partial l}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial b_1^2 } = (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 }\\
+\\
+\frac{\partial l}{\partial w_{11}^2 } & =  \frac{\partial l}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial w_{11}^2 } =  (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial w_{11}^2 } \\
+\\
+\frac{\partial l}{\partial b_1^1 } & = \frac{\partial l}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial b_1^2 } = (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } \\
+\\
+\frac{\partial l}{\partial w_{11}^1 } & =  \frac{\partial l}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial w_{11}^1 } = (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial w_{11}^1 } 
+\end{align*}
+++++
+
+Then we update the paramaters using the gradient update equation:
+
+[stem]
+++++
+\begin{align*}
+w_{11}^2 & \leftarrow w_{11}^2 - \alpha \frac{\partial l}{\partial w_{11}^2 } \\
+w_{11}^2 & \leftarrow w_{11}^2 - \alpha (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial w_{11}^2 } \\
+& = w_{11}^2 - \alpha \, \underbrace{(\hat{y}-y)}_{e_2} \cdot \sigma'(s_1^2) \cdot x_1^1
+\end{align*}
+++++
+
+A large gradient value with respect to stem:[w_{11}^2] means that stem:[w_{11}^2] is far away from the minimum point of the loss function. And as a result stem:[w_{11}^2] will be updated a lot. We see that the gradient of the loss with respect to stem:[w_{11}^2] is decomposed into three derivative terms. The larger the magnitude of each derivative, the larger the gradient will be.
+
+[stem]
+++++
+\frac{\partial l}{\partial w_{11}^2 } = (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial w_{11}^2 }
+++++
+
+* The first derivative represents the error of the neural network. If the error is 0, stem:[w_{11}^2] will not be updated.
+* The second derivative is the derivative of the activation function of the output layer. This tells us the output's sensitivity to change with respect to a change in stem:[s_1^2].
+* The thrid derivative is the output value of the neuron in the hidden layer. If this is error, stem:[w_{11}^2] will not be updated.
+
+The update equation of stem:[w_{11}^1] is
+
+[stem]
+++++
+\begin{align*}
+w_{11}^1 & \leftarrow w_{11}^1 - \alpha \frac{\partial l}{\partial w_{11}^1 } \\
+w_{11}^1 & \leftarrow w_{11}^1 - \alpha (\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial w_{11}^1 } \\
+& = w_{11}^1 - \alpha \, \underbrace{(\hat{y}-y)\cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot w_{11}^2}_{e_1} \cdot \sigma'(s_1^1) \cdot x_1^0
+\end{align*}
+++++
+
+This expression has the same form as the expression that updates stem:[w_{11}^2]. The stem:[e_2] is the error of the output layer, it can be inferred that stem:[e_1] is the error of the hidden layer. In other words, the error in the output layer is backpropagated and the error stem:[e_1] is assigned to the hidden neuron. The error of a lower layer cannot be measured directly because the desired output of the lower layer is unknown. However, if this value is used as a proxy for the error, stem:[w_1] can be updated using gradient descent.
+
+== Vanishing Gradients ==
+In the update equation of stem:[w_{11}^2], the derivative of the activation function in the output layer stem:[\sigma'(s_1^2)] is multiplied in the gradient term. And when updating stem:[w_{11}^1], the derivative of the activation function in the hidden layer stem:[\sigma'(s_1^1)] is additionally multiplied.
+
+If there are 10 hidden layers, the derivatives of the activation functions are multiplied 10 times.
+
+* If the derivative of the activation function is less than 1, multiplying the derivative value 10 times will produce a very small value. If there are 5 hidden layers, the activation functions are all sigmoid, and the derivatives are all 0.2, then 0.2 is multiplied 5 times.
++
+In lower hidden layers, the gradient will become very small. Thus the parameters in the upper layers are updated a lot, while the parameters of lower layers are hardly updated. This is called the *vanishing gradient* problem. This increases the loss and prevents the neural network from learning.
+
+* If the derivative of the activation function is greater than 1, the gradients increases exponentially as it goes down the layers. This is called the *exploding gradient* problem.
+
+The maximum value of the derivative of sigmoid is 0.25. The maximum value of the derivative of tanh is at most 1. The vanishing gradient problem occurs with these activation functions.
+
+To alleviate this problem, ReLU is widely used in hidden layers. ReLU is a non-linear function that combines two linear functions. The gradient of ReLU is either 0 or 1. If it is 1, the gradient propagates well to the lower layers. If it is 0, the gradient will not propagate. However, with ReLU, the output value of some neurons in the hidden layer will become 0, causing some of the dropout and regularization effects.
+
+In the worst case, if the output of all the neurons in the hidden layer becomes 0, the gradient cannot propagate to lower layers. This is called the *dying ReLU* problem. This problem may appear if the learning rate stem:[\alpha] is large, or the bias is large and negative. This is because they make the weights negative and the output of ReLU 0.
+
+[stem]
+++++
+\mathbf{W}^l \leftarrow \mathbf{W}^l - \alpha \, \_\_ \, f_o' \, f_2' \, f_1'
+++++
+
+where stem:[f_o, f_2, f_1] are the activation functions in the output layer, 2nd hidden layer, and 1st hidden layer respetively. stem:[\_\_] denotes some other terms.
+
+* Say stem:[f_2, f_1] are ReLU, their derivative is either 0 or 1. And when the stem:[\alpha \, \_\_ \, f_o'] is positive and large, the term stem:[\alpha \, \_\_ \, f_o' \, f_2' \, f_1'] will be greater than current stem:[\mathbf{W}], thus the updated stem:[\mathbf{W}] will be negative.
+
+* If the bias stem:[\mathbf{b}^l] is large negative and the elements of stem:[\mathbf{X}] are all positive, then the input to ReLU  stem:[(\mathbf{X \cdot \mathbf{W} + \mathbf{b}})] will be negative. Hence the outputs from this hidden layer will be all 0.
+
+To alleviate this problem, we can try lowering the learning rate and preventing the bias from becoming large. We can also try using the leaky ReLU or softplus activation function.
+
+image::.\images\activations_derivatives.png[align='center', 600, 500]

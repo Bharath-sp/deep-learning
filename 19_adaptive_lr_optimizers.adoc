@@ -1,0 +1,268 @@
+= Adaptive Learning Rate Optimizers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Adaptive Gradient Optimizer ==
+Gradient descent and momentum optimizers use a constant learning rate, and apply the same learning rate in all the directions. We can make it adaptive and introduce different learning rate for each parameter.
+
+And it is also a good idea to gradually reduce the learning rate while iterating. At the beginning of the iteration, stem:[\mathbf{w}] is likely to be far away from the target point, so stem:[\mathbf{w}] needs to be updated a lot by applying a large learning rate. And as stem:[\mathbf{w}] approaches the target point, stem:[\mathbf{w}] needs to be updated little by little by applying a smaller learning rate.
+
+Adaptive gradient (Adagrad) not only does this, but also applies a different learning rate to each stem:[w] depending on the magnitude of its gradient. So Adagrad is not sensitive to the initial learning rate, so there is no need to tune the learning rate.
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_t & = \mathbf{G}_{t-1} + [ \nabla L(\mathbf{w}_t)]^2, \hspace{1cm} \mathbf{G}_0 = \mathbf{0} \\
+\mathbf{w}_{t+1} & = \mathbf{w}_t - \frac{\alpha}{\sqrt{\mathbf{G}_t + \epsilon}} \nabla L(\mathbf{w}_t)
+\end{align*}
+++++
+
+The term stem:[\frac{\alpha}{\sqrt{\mathbf{G}_t + \epsilon}}] is the learning rate, and stem:[\alpha] is the initial learning rate. stem:[\boldsymbol{\epsilon}] is a vector with very small values (e.g., stem:[10^{-6}]) to prevent the denominator from being zero.
+
+* For parameters whose squared gradient is large, the learning rate will be small. And for parameters with small squared gradient, the learning rate will be large. This way we apply different learning rate for each parameter. And this reduces the dominance of update of the parameters along which the loss function is changing rapidly.
+
+* As iterations progress, stem:[\mathbf{G}_t] increases monotonically, which decreases the learning rate continuously.
++
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_0 & = \mathbf{0} \\
+\mathbf{G}_1 & = [\nabla L(\mathbf{w}_1)]^2 \\
+\\
+\mathbf{G}_2 & = [\nabla L(\mathbf{w}_1)]^2 + [\nabla L(\mathbf{w}_2)]^2 \\
+\\
+\mathbf{G}_3 & = [\nabla L(\mathbf{w}_1)]^2 + [\nabla L(\mathbf{w}_2)]^2 + [\nabla L(\mathbf{w}_3)]^2 \\
+\dots \\
+\mathbf{G}_t & = \sum_{i=1}^t [\nabla L(\mathbf{w}_i)]^2
+\end{align*}
+++++
+
+If the learning rate becomes small too quickly, convergence can be slow. So we usually set a high initial value stem:[\alpha].
+
+=== Example ===
+Suppose our loss function is
+
+[stem]
+++++
+L(w_1, w_2) = (w_1-4)^2 + (w_2 -2)^2
+++++
+
+And let stem:[\mathbf{w}_t = (2,3)] be the initial value for the parameters. The gradient of the loss with respect to the parameters
+
+[stem]
+++++
+\begin{align*}
+\nabla L (\mathbf{w}) & = \left( \frac{\partial L}{\partial w_1}, \frac{\partial L}{\partial w_2}\right) \\
+\nabla L (\mathbf{w}) & = (2w_1-8, 2w_2 -4) \implies \nabla L (\mathbf{w}_t) = (-4, 2) 
+\end{align*}
+++++
+
+The slope along the stem:[w_1] axis is -4 and the slope along the stem:[w_2] axis is 2. Then 
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_t & = \mathbf{0} + [ \nabla L(\mathbf{w}_t)]^2 = (16,4)
+\end{align*}
+++++
+
+Update the parameter using the formula: (Assume stem:[\alpha] = 1, stem:[\boldsymbol{\epsilon} =\mathbf{0}])
+
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t} \\
+w_{2, t}
+\end{bmatrix} - \begin{bmatrix}
+\frac{\alpha}{\sqrt{16}} \frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_1} \\
+\frac{\alpha}{\sqrt{4}} \frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+2 \\
+3
+\end{bmatrix} - \begin{bmatrix}
+\frac{1}{4} \cdot (-4) \\
+\frac{1}{2} \cdot (2)
+\end{bmatrix} = \begin{bmatrix}
+3 \\
+2
+\end{bmatrix}
+++++
+
+As we can see, a learning rate of stem:[0.25] is applied to stem:[w_1] and a learning rate of stem:[0.5]  to stem:[w_2]. For the next update, stem:[\mathbf{w}_{t+1} = (3,2)]. The gradient of the loss is stem:[\nabla L (\mathbf{w}_{t+1}) = (-2, 0) ].
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_{t+1} & = \begin{bmatrix}
+16 \\
+4
+\end{bmatrix} + \begin{bmatrix}
+4 \\
+0
+\end{bmatrix} = \begin{bmatrix}
+20\\
+4
+\end{bmatrix}
+\end{align*}
+++++
+
+Update the parameter using the formula:
+
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+2} \\
+w_{2, t+2}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} - \begin{bmatrix}
+\frac{\alpha}{\sqrt{20}} \frac{\partial L (w_{1, t+1}, w_{2, t+1})}{\partial w_1} \\
+\frac{\alpha}{\sqrt{4}} \frac{\partial L (w_{1, t+1}, w_{2, t+1})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+3 \\
+2
+\end{bmatrix} - \begin{bmatrix}
+\frac{1}{\sqrt{20}} \cdot (-2) \\
+\frac{1}{2} \cdot (0)
+\end{bmatrix} = \begin{bmatrix}
+3.45 \\
+2
+\end{bmatrix}
+++++
+
+image::.\images\adagrad.png[align='center', 400, 300]
+
+== RMSprop Optimizer ==
+RMSprop improves the disadvantage of Adagrad that the learning rate decays too quickly. When calculating stem:[\mathbf{G}_t], we take the exponentially weighted average of the previous stem:[\mathbf{G}] and the current squared gradient. This way we don't accumulate all the gradients, we give more importance to the recent gradients and less to the past gradients.
+
+This allows the learning rate to decay smoothly. The larger stem:[\rho], the more past stem:[\mathbf{G}] is reflected, so the learning rate decreases more smoothly. The typical values of stem:[\rho] are 0.90 to 0.99.
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_t & = \rho \, \mathbf{G}_{t-1} + (1-\rho) [ \nabla L(\mathbf{w}_t)]^2, \hspace{1cm} \mathbf{G}_0 = \mathbf{0} \\
+\mathbf{w}_{t+1} & = \mathbf{w}_t - \frac{\alpha}{\sqrt{\mathbf{G}_t + \epsilon}} \nabla L(\mathbf{w}_t)
+\end{align*}
+++++
+
+NOTE: In Adagrad, we had equal weights for both the terms in stem:[\mathbf{G}_t].
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_0 & = \mathbf{0} \\
+\mathbf{G}_1 & = (1-\rho) [ \nabla L(\mathbf{w}_1)]^2 \\
+\\
+\mathbf{G}_2 & = \rho \mathbf{G}_1 + (1-\rho) [ \nabla L(\mathbf{w}_2)]^2 \\
+& = \rho (1-\rho) [ \nabla L(\mathbf{w}_1)]^2 + (1-\rho) [ \nabla L(\mathbf{w}_2)]^2
+\end{align*}
+++++
+
+This amounts to taking exponential weighted moving average of the squared gradients. As the learning rate of RMSprop drops less than Adagrad, we set the initial learning rate stem:[\alpha] smaller than Adagrad.
+
+image::.\images\optimizer_comp.png[align='center', 700, 400]
+
+=== Example ===
+Suppose our loss function is
+
+[stem]
+++++
+L(w_1, w_2) = (w_1-4)^2 + (w_2 -2)^2
+++++
+
+And let stem:[\mathbf{w}_t = (2,3)] be the initial value for the parameters. The gradient of the loss with respect to the parameters
+
+[stem]
+++++
+\begin{align*}
+\nabla L (\mathbf{w}) & = \left( \frac{\partial L}{\partial w_1}, \frac{\partial L}{\partial w_2}\right) \\
+\nabla L (\mathbf{w}) & = (2w_1-8, 2w_2 -4) \implies \nabla L (\mathbf{w}_t) = (-4, 2) 
+\end{align*}
+++++
+
+Assume stem:[\rho=0.9] 
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_t & = 0.9 \cdot \mathbf{0} + 0.1 \cdot [ \nabla L(\mathbf{w}_t)]^2 = (1.6,0.4)
+\end{align*}
+++++
+
+Update the parameter using the formula: (Assume stem:[\alpha] = 0.2, stem:[\boldsymbol{\epsilon} =\mathbf{0}])
+
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t} \\
+w_{2, t}
+\end{bmatrix} - \begin{bmatrix}
+\frac{\alpha}{\sqrt{1.6}} \frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_1} \\
+\frac{\alpha}{\sqrt{0.4}} \frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+2 \\
+3
+\end{bmatrix} - \begin{bmatrix}
+0.158 \cdot (-4) \\
+0.316 \cdot (2)
+\end{bmatrix} = \begin{bmatrix}
+2.63 \\
+2.37
+\end{bmatrix}
+++++
+
+As we can see, a learning rate of stem:[0.158] is applied to stem:[w_1] and a learning rate of stem:[0.316]  to stem:[w_2]. For the next update, we start with stem:[\mathbf{w}_{t+1} = (2.63,2.37)]. The gradient of the loss is stem:[\nabla L (\mathbf{w}_{t+1}) = (-2.74, 0.74) ].
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_{t+1} & = 0.9 \cdot \begin{bmatrix}
+1.6 \\
+0.4
+\end{bmatrix} + 0.1 \cdot \begin{bmatrix}
+7.5 \\
+0.548
+\end{bmatrix} = \begin{bmatrix}
+2.19\\
+0.415
+\end{bmatrix}
+\end{align*}
+++++
+
+Update the parameter using the formula:
+
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+2} \\
+w_{2, t+2}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} - \begin{bmatrix}
+\frac{\alpha}{\sqrt{2.19}} \frac{\partial L (w_{1, t+1}, w_{2, t+1})}{\partial w_1} \\
+\frac{\alpha}{\sqrt{0.415}} \frac{\partial L (w_{1, t+1}, w_{2, t+1})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+2.63 \\
+2.37
+\end{bmatrix} - \begin{bmatrix}
+\frac{0.2}{\sqrt{2.19}} \cdot (-2.74) \\
+\frac{0.2}{0.415} \cdot (0.74)
+\end{bmatrix} = \begin{bmatrix}
+3 \\
+2.14
+\end{bmatrix}
+++++
+
+image::.\images\rmsprop.png[align='center', 400, 300]
+
+Because the learning rate decreases gently, the target point is reached through a more stable path.

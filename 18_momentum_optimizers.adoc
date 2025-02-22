@@ -1,0 +1,174 @@
+= Momentum Optimizers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+There are multiple paths to reach a minimum point on the loss surface in a high-dimensional space. We need algorithms that find the optimal path to reach the goal as quickly and reliable as possible. These algorithms are called optimizers, and many different optimizers have been developed.
+
+== Gradient Descent Optimizer ==
+Gradient Descent is the most basic optimizer. This is easy to understand and implement. The parameter update equation in gradient descent is
+
+[stem]
+++++
+\mathbf{w}_{t+1} = \mathbf{w}_t - \eta \frac{\partial L(\mathbf{w}_t)}{\partial \mathbf{w}}
+++++
+
+The gradient descent optimizer has some disadvantages:
+
+*Local Minimum Trap:*
+
+The gradient descent can easily fall into the local minima. The loss function in neural networks is high-dimensional and may have many local minima and saddle points. At these points, the derivative becomes zero, preventing further updates. As a result, the gradient descent stucks at a point stem:[\mathbf{w}_t] without making further progress. We should avoid getting stuck at an undesired local minima.
+
+How updates happen in gradient descent? Say our loss function is
+
+[stem]
+++++
+L(w_1, w_2) = (w_1-3)^2 + (w_2 -2)^2
+++++
+
+. Let stem:[(w_{1,t}, w_{2,t}) = (1,4)] be the initial value for the parameters.
+. Find the gradient at the point.
++
+[stem]
+++++
+\begin{align*}
+\nabla L (w_1, w_2) & = \left( \frac{\partial L}{\partial w_1}, \frac{\partial L}{\partial w_2}\right) \\
+\nabla L (w_1, w_2) & = (2w_1-6, 2w_2 -4) \implies \nabla L (1,4) = (-4, 4)
+\end{align*}
+++++
++
+This means the slope in the stem:[w_1] direction is -4 and the slope in the stem:[w_2] direction is 4.
+
+. Update the parameter using the formula 
++
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t} \\
+w_{2, t}
+\end{bmatrix} - \alpha \begin{bmatrix}
+\frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_1} \\
+\frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+1 \\
+4
+\end{bmatrix} - 0.3 \begin{bmatrix}
+-4 \\
+4
+\end{bmatrix} = \begin{bmatrix}
+2.2 \\
+2.8
+\end{bmatrix}
+++++
+
+image::.\images\grad_des_01.png[align='center', 600,400]
+
+Since the gradient of stem:[w_1] is negative, stem:[w_1] has increased. And since the gradient of stem:[w_2] is positive, stem:[w_2] has decreased. The contour lines of this loss function is circular. If there was a local minimum along the path to a better minimum, the gradient descent will head towards that point. The gradient becomes zero at this local minimum, and the algorithm doesn't update any further.
+
+*Zig-zag Oscillation:*
+
+If the surface of the loss function has a gentle horizontal slope and a steep vertical slope, the gradient descent moves more in the stem:[w_2] direction and less in the stem:[w_1] direction. And it takes a zig-zag path to the target point.
+
+image::.\images\grad_des_02.png[align='center']
+
+This makes slow convergence. An improvement over this is the momentum optimizer.
+
+== Momentum Optimizer ==
+The momentum optimizer adds momentum to gradient descent. It adds the current gradient to the previous momentum. This is the momentum vector.
+
+image::.\images\momentum_optimizer.png[align='center']
+
+Suppose stem:[\mathbf{w}_{t-1}] is the previous and stem:[\mathbf{w}_t]  is the current position of the parameter. The momentum optimizer takes into account the inertia of wanting to continue following the previous path. The parameter stem:[\mathbf{w}] is updated in the direction where the local gradient and previous momentum are combined.
+
+[stem]
+++++
+\mathbf{w}_{t+1} = \mathbf{w}_t - \alpha \nabla L(\mathbf{w}_t) - \beta \, \mathbf{m}_{t-1}
+++++
+
+where stem:[\alpha \nabla L(\mathbf{w}_t)] is the local gradient and stem:[\beta \, \mathbf{m}_{t-1}] is the momentum. Then the momentum vector is
+
+[stem]
+++++
+\mathbf{m}_t = \beta \, \mathbf{m}_{t-1} + \alpha \nabla L(\mathbf{w}_t) \hspace{1cm} \text{with } \mathbf{m}_0 = \mathbf{0}
+++++
+
+where stem:[\beta] is a hyperparameter and it is set to a value between 0 and 1 (typically 0.90 to 0.99). Then the stem:[\mathbf{w}] is updated as
+
+[stem]
+++++
+\mathbf{w}_{t+1} = \mathbf{w}_t - \mathbf{m}_t
+++++
+
+The momentum vector remembers all the past gradients.
+
+[stem]
+++++
+\begin{align*}
+\mathbf{m}_0 & = \mathbf{0} \\
+\mathbf{m}_1 & = \alpha \nabla L(\mathbf{w}_1) \\
+\\
+\mathbf{m}_2 & = \beta \alpha \nabla L(\mathbf{w}_1) + \alpha \nabla L(\mathbf{w}_2) \\
+\\
+\mathbf{m}_3 & = \beta (\beta \alpha \nabla L(\mathbf{w}_1) + \alpha \nabla L(\mathbf{w}_2)) + \alpha \nabla L(\mathbf{w}_3) \\
+& = \beta^2 \alpha \nabla L(\mathbf{w}_1) + \alpha \beta  \nabla L(\mathbf{w}_2) + \alpha \nabla L(\mathbf{w}_3) \\
+\\
+& \dots
+\end{align*}
+++++
+
+Since stem:[0 < \beta < 1], the gradient in the distant past becomes exponentially smaller. The recent gradients take on greater weight. This amounts to taking exponential weighted moving average of the gradients.
+
+*Dampens Oscillations:*
+
+The components of gradients that are opposite at stem:[t-1] and stem:[t] iterations will cancel out. And those components that are aligned at stem:[t-1] and stem:[t] will become stronger and quick progress is made in this direction.
+
+This helps reduce the zig-zag oscillation. In the zig-zag oscillation, we see the gradient with respect to stem:[w_2] at stem:[t-1] and stem:[t] are opposite, and the gradient with respect to stem:[w_1] at stem:[t-1] and stem:[t] are aligned. So the progress is attenuated in the stem:[w_2] direction, and boosted in the stem:[w_1] direction. This will accelerate the gradient descent towards the target point and dampen the oscillations.
+
+*Overcomes Local Minimum Trap:*
+
+The momentum optimizer can also alleviate the local minima problem. Due to inertia, the momentum optimizer may pass through a shallow local minimum or may take a different path to the target:
+
+* At a shallow minimum point, the local gradient will be zero, but the previous momentum can help update stem:[\mathbf{w}] to move beyond this point.
+
+* Or, when there is a shallow local minimum nearby, the gradient descent will move towards it, but the momentum optimizer may take a different route and bypass it.
+
+This way the momentum optimizer can reduce the local minimum problem that the gradient descent can easily encounter. But near the target point, we need to approach the target point slowly as we can pass the target point due to acceleration. However, in the next iteration we will return towards the target point.
+
+An example on how the gradient descent and the momentum optimizer converge when the loss function has a gentle slope in the stem:[w_1] direction and a steep slope in the stem:[w_2] direction:
+
+image::.\images\grad_des_vs_momentum.png[align='center', 700, 600]
+
+We can see zig-zag oscillation in the gradient descent optimizer and it is reduced in the momentum optimizer. With momentum optimizer, we can reach the target point more reliably.
+
+== Nesterov Accelerated Gradient Optimizer ==
+The momentum optimizer has a disadvantage near the target point that it may pass the target point due to inertia. NAG is an improvement on this. When determining stem:[\mathbf{w}_{t+1}], the momentum optimizer calculates the local gradient at the current point (A), while the NAG optimizer calculates the local gradient at the point where momentum was applied (B).
+
+image::.\images\nag_optimizer.png[align='center']
+
+[stem]
+++++
+\mathbf{w}_{t+1} = \mathbf{w}_t - \beta \, \mathbf{m}_{t-1} - \alpha \nabla L(\mathbf{w}_t - \beta \, \mathbf{m}_{t-1})
+++++
+
+that is, we apply gradient descent at point (B). The momentum vector is given by
+
+[stem]
+++++
+\begin{align*}
+\mathbf{m}_t & = \beta \, \mathbf{m}_{t-1} + \alpha \nabla L(\mathbf{w}_t - \beta \, \mathbf{m}_{t-1}) \hspace{1cm} \text{with } \mathbf{m}_0 = \mathbf{0} \\
+\mathbf{w}_{t+1} & = \mathbf{w}_t - \mathbf{m}_t
+\end{align*}
+++++
+
+NAG improves the disadvantage of the momentum optimizer, which may pass the target point near the target point. When stem:[\mathbf{w}] is far away from the target point, it can quickly approach the target point due to the momentum effect. And when stem:[\mathbf{w}] approaches the target point, it can stably reach the target point due to the NAG effect.
+
+image::.\images\momentum_vs_nag.png[align='center', 700, 400]
+
+NAG optimizer reduces the number of iterations required and thus helps in faster convergence.
+
+

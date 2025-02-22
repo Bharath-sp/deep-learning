@@ -1,0 +1,207 @@
+= Adadelta Optimizer =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== How Does it Work? ==
+In the adagrad method, the denominator accumulates the squared gradients from each iteration starting at the beginning of training. Since each term is positive, this accumulated sum continues to grow throughout the training, effectively shrinking the learning rate on each dimension. After many iterations, this learning rate will become infinitesimally small.
+
+The adadelta optimizer addresses two main drawbacks of the previous methods:
+
+. The continual decay of learning rates throughout training.
+. The need for a manually selected global learning rate.
+
+In the SGD optimizer, the parameter update equation is
+
+[stem]
+++++
+\begin{align*}
+w_{t+1} & = w_t - \alpha \nabla L(w_t) \\
+w_{t+1} & = w_t + \Delta w_t \\
+\end{align*}
+++++
+
+Assuming the loss function stem:[L] and stem:[\alpha] unitless, the units of stem:[\Delta w_t] is the units of stem:[\nabla L = \frac{\partial L}{\partial w}], which is proportional to stem:[\frac{1}{\text{units of } w}].
+
+[stem]
+++++
+\text{Units of } \Delta w \propto \frac{1}{\text{units of } w}
+++++
+
+The units of stem:[w] and the units of the update do not match. Here the units relate to the gradient, not the parameter. This is the case with the momentum optimizer as well. The adagrad also doesn't have correct units since the update involve ratio of gradient quantities, i.e., stem:[\mathbf{G}_t] and stem:[\nabla L]. So the update stem:[\Delta \mathbf{w}] is unitless.
+
+If the parameters had some hypothetical units, the changes to the parameters should be changes in those units. For example, if stem:[\mathbf{w}] is in meters, the stem:[\Delta \mathbf{w}] should also be in meters. In second order methods such as Newton's method that use Hessian information or an approximation to the Hessian do have the correct units for the parameter updates.
+
+[stem]
+++++
+\Delta \mathbf{w} \,\,\, \propto \,\,\, \mathbf{H}^{-1} \nabla L \,\,\, \propto \,\,\, \frac{\frac{\partial L}{\partial \mathbf{w}}}{\frac{\partial^2 L}{\partial \mathbf{w}^2}} \propto \text{units of } \mathbf{w}
+++++
+
+Here the units of stem:[\Delta \mathbf{w}] is the same as the units of stem:[\mathbf{w}].
+
+Noticing the mismatch of units, we consider the following terms to add to the update equation of Adagrad in order for the units of the update to match the units of the parameters. Since the second order methods are correct, we rearrange Newton's method (assuming a diagonal Hessian) for the inverse of the second derivative to determine the quantities involved.
+
+[stem]
+++++
+\Delta w = \frac{\frac{\partial L}{\partial w}}{\frac{\partial^2 L}{\partial w^2}} \implies \frac{\partial L}{\partial w} = \frac{\partial^2 L}{\partial w^2} \Delta w \implies \frac{1}{\frac{\partial^2 L}{\partial w^2}} = \frac{ \Delta w}{\frac{\partial L}{\partial w}}
+++++
+
+We assume that the curvature is locally smooth and approximate stem:[\Delta w_t] by computing the exponentially decaying RMS, i.e., at iteration stem:[t], we take the square root of the exponential moving average of the square of the numerator and denominator quantities to obtain
+
+[stem, id='equation_1']
+++++
+\begin{align}
+\frac{1}{\frac{\partial^2 L}{\partial w_t^2}} = \frac{ \text{RMS}(\Delta w_t)}{\text{RMS}(\nabla L(w_t))} 
+= \frac{\sqrt{S_t + \epsilon}}{\sqrt{G_t + \epsilon}}
+\end{align}
+++++
+
+where stem:[S_t] is the exponential moving average of stem:[\Delta w^2] and stem:[G_t] is the exponential moving average of stem:[\nabla L^2].
+
+We know the update equation in Netwon's method:
+
+[stem]
+++++
+\Delta \mathbf{w} = - \mathbf{H}^{-1} \nabla L(\mathbf{w})
+++++
+
+When the Hessian is diagonal, its inverse is given by
+
+[stem]
+++++
+\mathbf{H} = \begin{bmatrix}
+\frac{\partial^2 L}{\partial w_1^2} & 0  \\
+0 & \frac{\partial^2 L}{\partial w_2^2}  \\
+\end{bmatrix} \implies \mathbf{H}^{-1} = \frac{1}{\frac{\partial^2 L}{\partial w_1^2} \cdot \frac{\partial^2 L}{\partial w_2^2}} \begin{bmatrix}
+\frac{\partial^2 L}{\partial w_2^2} & 0  \\
+0 & \frac{\partial^2 L}{\partial w_1^2}  \\
+\end{bmatrix} 
+
+= \begin{bmatrix}
+\frac{1}{\frac{\partial^2 L}{\partial w_1^2}} & 0  \\
+0 & \frac{1}{\frac{\partial^2 L}{\partial w_2^2}}  \\
+\end{bmatrix} 
+++++
+
+Therefore, we can substitute from <<equation_1, Equation 1>> to get
+
+[stem]
+++++
+\Delta \mathbf{w}_t = - \frac{ \text{RMS}(\Delta \mathbf{w}_t)}{\text{RMS}(\nabla L(\mathbf{w}_t))} \nabla L(\mathbf{w}_t)
+++++
+
+Since stem:[\Delta \mathbf{w}_t] for the current step is not known, we use stem:[\text{RMS}(\Delta \mathbf{w}_{t-1})] instead.
+
+[stem]
+++++
+\begin{align*}
+\Delta \mathbf{w}_t & = - \frac{ \text{RMS}(\Delta \mathbf{w}_{t-1})}{\text{RMS}(\nabla L(\mathbf{w}_t))} \nabla L(\mathbf{w}_t)
+= - \frac{\sqrt{\mathbf{S}_{t-1} + \epsilon}}{\sqrt{\mathbf{G}_t + \epsilon}} \nabla L(\mathbf{w}_t)
+\end{align*}
+++++
+
+where 
+
+* stem:[\mathbf{S}_{t-1} = \rho \mathbf{S}_{t-2} + (1-\rho) \Delta \mathbf{w}_{t-1}^2] with stem:[\mathbf{S}_0 = \mathbf{0}] and stem:[\Delta \mathbf{w}_0 = \mathbf{0}] and stem:[\Delta \mathbf{w}_{t-1}^2 = (\mathbf{w}_{t-1} - \mathbf{w}_t)^2].
+* stem:[\mathbf{G}_t = \rho \, \mathbf{G}_{t-1} + (1-\rho) [ \nabla L(\mathbf{w}_t)\]^2] with stem:[\mathbf{G}_0 = \mathbf{0}].
+
+Hence, the adadelta update equation is
+
+[stem]
+++++
+\begin{align*}
+\mathbf{w}_{t+1} & = \mathbf{w}_t + \Delta \mathbf{w}_t \\
+& = \mathbf{w}_t - \frac{\sqrt{\mathbf{S}_{t-1} + \epsilon}}{\sqrt{\mathbf{G}_t + \epsilon}} \nabla L(\mathbf{w}_t)
+\end{align*}
+++++
+
+We see that there is no global learning rate stem:[\alpha] in this method. However, Tensorflow and Pytorch use a global learning rate. They additionally apply stem:[\alpha] in the formula for updating stem:[\mathbf{w}_{t+1} = \mathbf{w}_t + \alpha \Delta \mathbf{w}_t]. Setting stem:[\alpha=1] behaves the same way as mentioned in the adadelta method.
+
+=== Example ===
+Suppose our loss function is
+
+[stem]
+++++
+L(w_1, w_2) = (w_1-4)^2 + (w_2 -2)^2
+++++
+
+And let stem:[\mathbf{w}_t = (2,3)] be the initial value for the parameters. The gradient of the loss with respect to the parameters
+
+[stem]
+++++
+\begin{align*}
+\nabla L (\mathbf{w}) & = \left( \frac{\partial L}{\partial w_1}, \frac{\partial L}{\partial w_2}\right) \\
+\nabla L (\mathbf{w}) & = (2w_1-8, 2w_2 -4) \implies \nabla L (\mathbf{w}_t) = (-4, 2) 
+\end{align*}
+++++
+
+If stem:[\rho] is set to a large value, stem:[\mathbf{G}_t] and stem:[\mathbf{S}_{t-1}] will change gently, else they will change significantly and the path may become unstable. Assuming stem:[\rho=0.9] and stem:[\epsilon=10^{-4}]
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_t & = 0.9 \times 0 + 0.1  \cdot [ \nabla L(\mathbf{w}_t)]^2 = [1.6, 0.4] \\
+\mathbf{S}_{t-1} & = 0.9 \times \mathbf{0} + 0.1 \times \mathbf{0} = [0,0]
+\end{align*}
+++++
+
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t} \\
+w_{2, t}
+\end{bmatrix} - \begin{bmatrix}
+\frac{\sqrt{0.0001}}{\sqrt{1.6001}} \frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_1} \\
+\frac{\sqrt{0.0001}}{\sqrt{0.4001}} \frac{\partial L (w_{1, t}, w_{2, t})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+2 \\
+3
+\end{bmatrix} - \begin{bmatrix}
+0.0079 \cdot (-4) \\
+0.0158 \cdot (2)
+\end{bmatrix} = \begin{bmatrix}
+2.03 \\
+2.968
+\end{bmatrix}
+++++
+
+In the numerator, this corresponds to the initial learning rate of stem:[\alpha=0.01] of other optimizers. The next update is as follows:
+
+stem:[\mathbf{w}_{t+1} = (2.03,2.968)]. The gradient is stem:[\nabla L (\mathbf{w}_{t+1}) = (-3.94, 1.936) ]
+
+[stem]
+++++
+\begin{align*}
+\mathbf{G}_{t+1} & = 0.9 \times [1.6, 0.4] + 0.1  \times [15.52, 3.75] = [2.99, 0.735] \\
+\mathbf{S}_t & = 0.9 \times [0,0] + 0.1 \times [(2-2.03)^2, (3-2.968)^2] = [0.00009,0.0001]
+\end{align*}
+++++
+
+[stem]
+++++
+\begin{bmatrix}
+w_{1, t+2} \\
+w_{2, t+2}
+\end{bmatrix} = \begin{bmatrix}
+w_{1, t+1} \\
+w_{2, t+1}
+\end{bmatrix} - \begin{bmatrix}
+\frac{\sqrt{0.00009 + 10^{-4}}}{\sqrt{2.99 + 10^{-4}}} \frac{\partial L (w_{1, t+1}, w_{2, t+1})}{\partial w_1} \\
+\frac{\sqrt{0.0001 + 10^{-4}}}{\sqrt{0.735 + 10^{-4}}} \frac{\partial L (w_{1, t+1}, w_{2, t+1})}{\partial w_2}
+\end{bmatrix} = \begin{bmatrix}
+2.03 \\
+2.968
+\end{bmatrix} - \begin{bmatrix}
+0.00796 \cdot (-3.94) \\
+0.0165 \cdot (1.936)
+\end{bmatrix} = \begin{bmatrix}
+2.061 \\
+2.93
+\end{bmatrix}
+++++
+
+image::.\images\adadelta_eg.png[align='center', 400, 300]

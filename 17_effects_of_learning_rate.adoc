@@ -1,20 +1,12 @@
-= Optimizers =
+= Effects of Learning Rate =
 :doctype: book
 :stem: latexmath
 :eqnums:
 :toc:
 
-== Issues with Gradient Descent ==
-The parameter update equation in gradient descent is
+Learning Rate affects the convergence.
 
-[stem]
-++++
-w_{t+1} = w_t - \eta \frac{\partial L(w_t)}{\partial w}
-++++
-
-The loss function in neural networks is high-dimensional and may have local minima and saddle points. At these points, the derivative becomes zero, preventing further updates. As a result, we get stuck at a point stem:[w_t] without making further progress. We should avoid getting stuck at an undesired local minima.
-
-== Convergence for Quadratic Functions ==
+== Convergence of Convex Functions ==
 Quadratic functions are convex functions. A real-valued quadratic function of one variable is
 
 [stem]
@@ -70,8 +62,45 @@ image::.\images\issues_with_gd_01.png[align='center', 800, 500]
 
 Hence stem:[\eta] is an important parameter and it should be chosen carefully. Based on its value, we will either converge, diverge, or oscillate around the local minima.
 
-Not all loss functions are quadratic function. When the loss function is non-quadratic, we can perform a quadratic approximation. Say we have a function (the blue curve) which is not quadratic. We can approximate the function within the neighborhood of a point stem:[w_0] by the Taylor series.
+Not all loss functions are quadratic. In the case of generic functions, we can perform a quadratic approximation. Say we have a function (the blue curve) which is not quadratic. We can approximate the function within the neighborhood of a point stem:[w_0] by the Taylor series.
 
-Green curve is the quadratic approximation of the loss function at stem:[w_0].
+The green curve is the quadratic approximation of the loss function at stem:[w_0]. Corresponding to this quadratic approximation, we take a learning rate of stem:[\eta = \frac{1}{C}] and update stem:[w] to the lowest point of this green quadratic curve. At stem:[w_1], we repeat the same process.
 
+image::.\images\quad_approx.png[align='center', 600, 500]
+
+This method is known as Newton's method.
+
+=== Multivariate Functions ===
+The loss function can be a function of more than one variable. The quadratic multivariate function is given by
+
+[stem]
+++++
+f(\mathbf{x}) = \frac{1}{2} \mathbf{x}^\top \mathbf{A} \mathbf{x} + \mathbf{x}^\top \mathbf{b} + c
+++++
+
+The loss function may have different curvatures (double derivative) in each direction, i.e., the function may increase fast in one direction compared to the other direction. Thus the optimal learning rate will be different for different directions.
+
+On expanding the above function for two variable case:
+
+[stem]
+++++
+f(\mathbf{x}) = \frac{1}{2} a_{11} x_1^2 + \frac{1}{2} a_{22} x_2^2 + \frac{1}{2} (a_{12} + a_{21}) x_1x_2 + b_1x_1 + b_2x_2 + C
+++++
+
+stem:[a_{11}] is the curvature (double derivative) with respect to stem:[x_1] and stem:[a_{22}] is the curvature with respect to stem:[x_2]. Then the learning rate has to be stem:[< \frac{2}{a_{11}}] in the stem:[x_1] direction and stem:[< \frac{2}{a_{22}}] in the stem:[x_2] direction for the optimal step. If the learning rate is stem:[> \frac{2}{a_{kk}}] in any of the directions, we will diverge in that direction.
+
+====
+In gradient descent, the learning rate must be smaller than the twice the smallest optimal learning rate stem:[\eta < 2 \cdot \eta_{\text{min}}]. Else, it may diverge.
+
+This makes the convergence slow and oscillate in some directions.
+====
+
+The loss reduces as per the learning rate:
+
+image::.\images\issues_with_gd_02.png[align='center', 400, 400]
+
+It is also a good idea to gradually reduce the learning rate while iterating and as we go towards the target point. We can reduce the learning rate after regular intervals or reduce it continuously (linearly, exponentially, etc.). For example
+
+* After every 30 epochs, stem:[\eta^* = 0.1 * \eta], or 
+* stem:[\eta_t = \eta_0 (1-\frac{\alpha}{100})^t], where stem:[\eta_0] can be set to a large value and stem:[t] is the iteration number.
 

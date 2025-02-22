@@ -108,6 +108,7 @@ Let's reiterate the series of operations in the forward direction:
 \mathbf{x}^2 & = \sigma(\mathbf{s}^2) \\
 \mathbf{s}^3 & = \mathbf{W}^3 \mathbf{x}^2 + \mathbf{b}^3 \\
 \hat{y} & = \sigma(\mathbf{s}^3) \\
+l & = \frac{1}{2}(\hat{y} - y)^2
 \end{align*}
 ++++
 

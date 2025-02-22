@@ -1,8 +1,21 @@
-= Automatic Differentiation =
+= Differentiation Methods =
 :doctype: book
 :stem: latexmath
 :eqnums:
 :toc:
+
+== Introduction ==
+Finding the gradient of the loss requires a differentiation algorithm. Since the expression of loss stem:[L] varies depending on the neural network's structure, an algorithm that automatically differentiates it is required.
+
+There are three algorithms/methods that help us find the derivatives:
+
+. Symbolic differentiation: Find the derivatives by directly manipulating the mathematical expression. This method can find the exact derivative, but depending on the shape of stem:[L], the computation becomes very complex and time-consuming. It is not suitable for deep learning.
+
+. Numerical differentiation: This method finds the approximate derivatives of a function.
+. Automatic differentiation: This method finds the exact derivatives of a function. There are two methods of automatic differentiation: 
+
+.. Forward derivative trace: Computes the partial derivatives during the forward pass operation. It is slow, and not suitable for gradient-based optimization.
+.. Backward derivative trace: Computes the partial derivatives during the backward pass. This mode is faster than forward mode. The backward derivative trace is used to train the neural networks.
 
 == A Primer on Calculus ==
 The core concept used in the backpropagation algorithm is the chain rule of differential calculus.
@@ -59,11 +72,9 @@ We know that
 * stem:[\frac{\partial f}{\partial x_2} = x_1 - cos(x_2)]. At stem:[(2,5)], the value of the derivative is 1.716.
 
 === Automatic Differentiation ===
-Automatic differentiation allows us to obtain the accurate gradients of the loss with respect to each parameter in neural networks. There are two methods of automatic differentiation: Forward derivative trace and backward derivative trace. The backward derivative trace is used to train the neural networks.
+Automatic differentiation allows us to obtain the accurate gradients of the loss with respect to each parameter in neural networks.
 
-*Forward Derivative Trace:*
-
-To carry out this method, let's look at the computational graph representing the evaluation of the given function:
+*Forward Derivative Trace:* To carry out this method, let's look at the computational graph representing the evaluation of the given function:
 
 image::.\images\frwd_derivative_trace.png[align='center', 500, 300]
 
@@ -146,22 +157,11 @@ This method is slightly more accurate.
 
 This method of differentiation is slow and it cannot be scaled. Thus, it is not used much in practice.
 
-== Automatic Differentiation in NN ==
-Suppose we have a neural network as below. This network has a total of 10 parameters. We need to find the derivative of the loss function with respect to all these 10 parameters. The computational graph of this network for calculating the loss is given by
-
-image::.\images\nn_computational_graph.png[align='center']
-
-We can use the backward derivative trace method to compute all these derivatives.
-
 == Why Backward Propagation? ==
-This method employs the analytical way, i.e., we derive a formula (if possible) analytically to compute the gradient.
-
-NOTE: Some functions are not differentiable, so we cannot use automatic differentiation while working with those functions.
-
 For the output layer of a neural network, we know the desired output stem:[y] and the predicted output stem:[\hat{y}], so we can define the error and the loss. The error (of a single data point) from the output layer can be defined as stem:[e=y-\hat{y}] and loss as stem:[L(\mathbf{w},b) = \frac{1}{2} (y-\hat{y})^2]. We can then easily calculate the gradients of this loss function with respect to the parameters associated with the output layer, stem:[\mathbf{W}_o] and stem:[\mathbf{b}_o]. And use these gradients to adjust these weights and biases using the gradient descent method.
 
 image::.\images\find_gradients.png[align='center', 600, 400]
 
 However for neurons in the hidden layers, we cannot directly define the error and loss because we do not know the desired output from these neurons. So how do we update the parameters stem:[\mathbf{W}_h] and stem:[\mathbf{b}_h]?
 
-The error from the output layer can be propagated backward to the hidden layers. This is the error backpropagation algorithm. Using the propagated error, we can obtain the gradients with respect to the parameters of the hidden layer. We can then use these gradients to adjust the weights and biases of the hidden layer using the gradient descent method.
+The error from the output layer can be propagated backward to the hidden layers. Using the propagated error, we can obtain the gradients with respect to the parameters of the hidden layer. We can then use these gradients to adjust the weights and biases of the hidden layer using the gradient descent method.

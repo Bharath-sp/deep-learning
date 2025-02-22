@@ -8,7 +8,9 @@
 Can a simple algorithm mimic how we think and make decisions? Enter the Perceptron - a groundbreaking idea that transformed AI. But how does this single-layer model draw the line between decisions?
 
 == What is a Perceptron? ==
-In 1957, Frank Rosenblatt came up with a more generic model. This model also performs linear classification, but the inputs can be real stem:[-\infty] to stem:[\infty] and different weights can be given to different input components. This model gives us a mechanism to provide more importance to some inputs and less to others. And also a mechanism to learn the weights.
+In 1957, Frank Rosenblatt introduced a more generalized model. This model also performs linear classification, but the inputs can be real stem:[-\infty] to stem:[\infty] and different weights can be given to different input components. This model gives us a mechanism to provide more importance to some inputs and less to others. And also a mechanism to learn the weights.
+
+In 1957, Frank Rosenblatt introduced a more generalized model. This model also performs linear classification, but unlike its predecessors, it allows input values to range continuously from stem:[-\infty] to stem:[\infty]. Additionally, it assigns different weights to different input components, providing a mechanism to emphasize certain inputs more than others. Furthermore, it incorporates a learning mechanism for adjusting these weights.
 
 The output of the model is 1 when the weighted combination of the inputs is greater than a threshold. The outputs are binary.
 

@@ -1,0 +1,40 @@
+= Adam Optimizers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Adam Optimizers ==
+The stochastic gradient descent (SGD) is the most basic optimizer. The momentum and NAG optimizers add momentum to SGD. The Adagrad, RMSprop and Adadelta optimizers adjust the learning rate according to the gradient for each parameter. The Adam optimizer is a combination of momentum and adaptive optimizers. Adam takes the advantage of the best of both optimizers.
+
+[stem]
+++++
+\begin{align*}
+\mathbf{g}_t & = \nabla L(\mathbf{w}_t) \\
+\mathbf{m}_t &= \beta \mathbf{m}_{t-1} + (1-\beta) \mathbf{g}_t  && \mathbf{m}_0 =\mathbf{0} \hspace{1cm} \text{First moment estimate} \\ 
+\mathbf{G}_t &= \rho \, \mathbf{G}_{t-1} + (1-\rho) \mathbf{g}_t^2 && \mathbf{G}_0 =\mathbf{0} \hspace{1cm} \text{Second moment estimate} \\
+\hat{\mathbf{m}}_t & =  \frac{\mathbf{m}_t}{1- \beta^t} \hspace{1cm} \hat{\mathbf{G}}_t =  \frac{\mathbf{G}_t}{1- \rho^t} \\
+\\
+\mathbf{w}_{t+1} & = \mathbf{w}_t - \alpha \cdot \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{G}}_t + \epsilon}}
+
+\end{align*}
+++++
+
+IMPORTANT: stem:[\beta, \rho \in [0,1)]. Good default settings are stem:[\alpha=0.001], stem:[\beta=0.9, \rho=0.999, \epsilon=10^{-8}].
+
+* The first moment estimate is obtained from the exponential moving average of the gradient.
+* The second moment estimate is obtained from the exponential moving average of the square of the gradient. This is same as stem:[\mathbf{G}_t] in RMSprop.
+
+As we have set stem:[\mathbf{m}_0] and stem:[\mathbf{G}_0] to be stem:[\mathbf{0}], the initial values of the exponential moving average stem:[\mathbf{m}_t] and stem:[\mathbf{G}_t] will be stem:[\mathbf{0}]. Initially it doesn't properly reflect the average of the time series. The stem:[\hat{\mathbf{m}}_t] and stem:[\hat{\mathbf{G}}_t] correct this. These are the bias-corrected moment estimates.
+
+At the beginning, stem:[\hat{\mathbf{m}}] and stem:[\hat{\mathbf{G}}] become large, and as the timesteps stem:[t] progresses, they become equal to the original stem:[\mathbf{m}] and stem:[\mathbf{G}].
+
+== Compare the Paths to the Target ==
+The path to the target by various optimizers:
+
+image::.\images\compare_paths.png[align='center']
+
+To make the path more visible, here the learning rate is set to a large value.
+
+
+

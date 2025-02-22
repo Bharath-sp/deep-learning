@@ -1,0 +1,83 @@
+= Regularization of NN =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Data Pre-processing ==
+
+* *Data normalization or standardization:*
++
+Data normalization is essential for training artificial neural network models. When the features are in different scales, the output value is more affected by the features with large scale. Methods for normalizing data include min-max normalization or z-score normalization.
+
+* *Data shuffling:*
++
+Data shuffling is not required when using batch gradient descent, but is required when using stochastic or mini-batch method. Let's assume we have a dataset collected by country. We want to train on this dataset using mini-batch gradient descent. Subsets 1 and 2 both contain the data points from country A. These data points are highly correlated. If the neural network trains on this data sequentially, it will first train on the data from country A, then the data from countries B, C, and D. When training on data from country D, the network may forget the knowledge it previously trained on country A.
++
+To prevent this, data shuffling is required. Because each subset contains data points from different countries, the correlation becomes smaller.
++
+image::.\images\data_shuffling.png[align='center', 400, 300]
+
+* *Use GPUs:*
++
+Neural networks primarily perform large-scale matrix multiplication repetitively. The more features in the training data and the more neurons in the hidden layer, the larger the matrix stem:[\mathbf{W}] becomes, and the computation cost of multiplication increases exponentially. GPUs have numerous cores and can perform matrix multiplication in parallel, allowing matrix multiplication to be performed very quickly. Thus, GPUs are essential for training on large amounts of data for deep learning.
++
+Deep learning tools like TensorFlow or PyTorch natively use GPUs to perform the matrix multiplication.
+
+== Weight and Bias Regularization ==
+Overfitting occurs when we use a neural network that is too wide or too deeep for simple data. Regularization can help prevent overfitting. Observing the changes in loss can help us determine if overfit is occurring. If the training loss continues to decrease, and the validation loss decreases and then increases again, then this means that the model has overfit.
+
+image::.\images\regularization_01.png[align='center', 600, 300]
+
+To apply regularization to neural networks, we can add regularization terms for the weights and biases to the loss function. The regularized loss function is
+
+[stem]
+++++
+\begin{align*}
+\mathcal{L}_{reg} & = \mathcal{L} + \lambda_1 \| \mathbf{W}^1 \|_1 + \frac{\lambda_2}{2} \| \mathbf{W}^2 \|_F^2 + \lambda_3 \| \mathbf{W}^3 \|_1 + \frac{\lambda_4}{2} \| \mathbf{W}^4 \|_F^2 \\
+\\
+& = \mathcal{L} + \lambda_1 \sum_{i,j} |\mathbf{W}^1_{i,j}| + \frac{\lambda_2}{2} \sum_{i,j} (\mathbf{W}^2_{i,j})^2 + \lambda_3 \sum_{i,j} |\mathbf{W}^3_{i,j}| + \frac{\lambda_4}{2} \sum_{i,j} (\mathbf{W}^4_{i,j})^2
+\end{align*}
+++++
+
+* L1 regularization is applied to stem:[\mathbf{W}^1].
+* L2 regularization is applied to stem:[\mathbf{W}^2]. This amounts to taking the Frobenius norm (sum of squared elements of weight matrices).
+* Both L1 and L2 regularizations are applied to stem:[\mathbf{W}^3].
+
+This prevents the weights in each layer from becoming too large, preventing overfitting.
+
+* L1 Regularization (Lasso): Applies a sparsity-inducing shrinkage to the weights. Encourages sparsity by shrinking small weights exactly to zero.
+* L2 Regularization (Ridge): Shrinks weights smoothly towards zero.
+
+We can use the gradient backpropagation algorithm to update the parameters, where we use
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial \mathcal{L}_{reg}}{\partial \mathbf{W}^1 } & = \frac{\partial \mathcal{L}}{\partial \mathbf{W}^1 } + \lambda_1 \cdot \text{sign}(\mathbf{W}^1) \\
+\frac{\partial \mathcal{L}_{reg}}{\partial \mathbf{W}^2 } & = \frac{\partial \mathcal{L}}{\partial \mathbf{W}^2 } + \lambda_2 \cdot \mathbf{W}^2 \\
+\end{align*}
+++++
+
+The resulting gradients will have the same shape as the respective stem:[\mathbf{W}]. Note: In stem:[\text{sign}(\mathbf{W}^1)], the sign operation is applied element-wise.
+
+Similarly, we can also add regularization terms for the biases as well.
+
+== Activity Regularization ==
+Activity regularization prevents overfitting by imposing a penalty on the outputs of each layer to prevent them from becoming too large.
+
+L1 activity regularization makes the output of some neurons zero, while L2 makes the output of neurons smaller overall. L1 activity regularization is most often used in sparse autoencoders to encourage sparse latent features that are the output of the encoder.
+
+[stem]
+++++
+\begin{align*}
+\mathcal{L}_{reg} & = \mathcal{L} + \lambda_1 \| \mathbf{x}^1 \|_1 + \frac{\lambda_2}{2} \| \mathbf{x}^2 \|_2^2 + \lambda_3 \| \mathbf{x}^3 \|_1 + \frac{\lambda_4}{2} \| \mathbf{x}^4 \|_2^2 \\
+\\
+& = \mathcal{L} + \lambda_1 \sum_{i,j} |\mathbf{W}^1_{i,j}| + \frac{\lambda_2}{2} \sum_{i,j} (\mathbf{W}^2_{i,j})^2 + \lambda_3 \sum_{i,j} |\mathbf{W}^3_{i,j}| + \frac{\lambda_4}{2} \sum_{i,j} (\mathbf{W}^4_{i,j})^2
+\end{align*}
+++++
+
+
+
+
+

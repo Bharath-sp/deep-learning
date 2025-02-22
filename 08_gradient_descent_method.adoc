@@ -184,7 +184,7 @@ In practice, we will have a dataset with stem:[N] data points. We have target st
 +
 [stem]
 ++++
-L(\mathbf{w},b) = \frac{1}{N} \sum_{n=1}^N \frac{1}{2} (t_n - y_n)^2
+L(\mathbf{w},b) = \frac{1}{N} \sum_{n=1}^N (t_n - y_n)^2
 ++++
 
 * In binary classification, binary cross-entropy (BCE) is used.
