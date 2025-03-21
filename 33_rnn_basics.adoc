@@ -1,0 +1,120 @@
+= RNN Basics =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Background ==
+MLPs and CNNs are called Feedforward neural networks because the input is fed and the forward pass processing happens only in one direction (there is no loop). And for these networks
+
+* The input size is fixed, an MLP trained to take 20-dimensional input will not work if we feed any other dimensional input. Similarly, we cannot feed stem:[W \times H \times 10] input into an CNN that is trained on, say stem:[W \times H \times 3] input (though stem:[W] and stem:[H] can vary).
+* Successive inputs are i.i.d. The current input doesn't depend on the previous input. They don't hold anything in memory while or after processing.
++
+If the data points stem:[\mathbf{x}^{(t)}] and stem:[\mathbf{x}^{(t+1)}] are independent, we can use feedforward networks to perform classification or regression. We can also do row subsampling or randomly shuffle the data. But if the data points stem:[\mathbf{x}^{(t)}] and stem:[\mathbf{x}^{(t+1)}] are dependent (or correlated), we cannot do row subsampling or randomly shuffle the data because the dependency relationship will be broken.
+
+So for some problems, we may have to handle inputs of varying size. The inputs may also be dependent on the previous inputs. And the required outputs from the model can also vary in size. Such problems are called as *Sequence Learning* problems. Examples of such tasks are auto-completion, sentiment analysis, POS tagging, action recognition, image captioning, time series analysis, etc.
+
+There are different variations of the sequence learning tasks depending on the size of the input and output:
+
+image::.\images\sequence_learn_01.png[align='center', 600, 400]
+
+Many-to-many has different configurations. In some tasks like language translation, we may want the output to start after the completion of the input, whereas for some other tasks we may want the model to generate the output at every instance the input is fed.
+
+To some extend, the convolution operation provide us the flexibility to look around the input with the help of kernel and extract the patterns. And it requires us to set this kernel size apriori. But we don't know apriori the length of the input we should be looking at. And at each time step, we may want to use all the inputs until present (i.e., all the inifinite past) to generate the output. This is not possible with the convolution operation.
+
+== RNNs Overview ==
+
+Recurrent Neural Networks (RNNs) are the neural networks that are designed to solve the sequence learning tasks. RNNs are widely used in time series forecasting, NLP, etc. Note that natural language data is also a time series composed of sequence of words.
+
+RNN are infinite response models, i.e., an input in the past can have influence all the way to the present. RNNs
+
+* Model the dependence among the input.
+* Can handle inputs of varying length.
+* Applies the same function at all time instances. This can be achieved through the following equation. For simplicity, let's consider the univariate case, where stem:[x^t, y^t \in \mathbb{R}]:
++
+[stem]
+++++
+y^t = f(x^t, y^{t-1})
+++++
++
+At each step stem:[t], the function takes two arguments: the current input stem:[x^t] and a term that captures the summary of all the past inputs stem:[x^{-\infty}] to stem:[x^{t-1}]. Such a term is the output of the previous time step stem:[y^{t-1}]. This makes the equation recursive.
++
+This way, all the inputs till stem:[t] influence the output at stem:[t]. And any input stem:[x^t] has influence on the output stem:[y^t] and on all the further outputs (all the timesteps > stem:[t]), i.e., stem:[x^t]'s influence doesn't die. But note an input stem:[x^t] doesn't have influence on the previous output stem:[y^{t-1}].
+
+TIP: As the function stem:[f] is typically a non-linear function and stem:[y^{t-1}] is regressing stem:[y^t], RNNs are also called as non-linear auto-regressive models.
+
+*How does RNN capture the influence of all the inputs until stem:[t]?*
+
+RNNs have internal state (or, memory) stem:[h^t] to handle this. It captures the summary of all the past inputs till stem:[t] and gets updated for every new input. We set the initial state stem:[h^0=y^0=0] and the time steps will be stem:[t=1,\dots,T]. As the same function is applied at each time step, the RNN layer can be unfolded in time steps as below:
+
+image::.\images\rnn_block.png[align='center', 700, 500]
+
+Here stem:[x] can be words in a sentence, frames in a video, sequence of numbers, etc. And stem:[x] can be mult-dimensional as well. The past information are encoded as a scalar or vector in stem:[h].
+
+As we can see, the past information is fed back to the input layer. With this design, the current values of a time series can be explained based on previous values. Once the model is successfully trained, when we input present data, it will output future data.
+
+In all the RNN blocks, the same transformation is applied at all time steps; only the arguments to the function are different. At each step, it takes the current input stem:[x^t] and the summary of all the previous inputs stem:[h^{t-1}]. Hence the name 'Recurrent'.
+
+[stem]
+++++
+h^t = f(x^t, h^{t-1})
+++++
+
+The initial recurrent state stem:[h^0] is often set to 0, or it can be initialized with random values and learned to get a better starting point. And at stem:[t=T], the internal state stem:[h^T] is passed to the output layer to generate stem:[y^T] (in the case of many-to-one RNN structure).
+
+CAUTION: The model output stem:[y^T] is different from the internal state stem:[h^T], because stem:[h^T] is the summary of all the past inputs till stem:[T] and stem:[y^T] is the processed output at stem:[T] using stem:[h^T]. The internal state stem:[h^T] has all the information, only the required part is processed to generate the output stem:[y^T].
+
+== Constructing a dataset for RNN ==
+The input data for RNN basically has a three-dimensional structure. The target data can be a 2D or 3D depending on the RNN type.
+
+image::.\images\rnn_input.png[align='center']
+
+Here the present value is dependent on the past. However, we cannot learn dependencies that extend infinitely far into the past. Therefore, we need to limit the period of time for learning dependencies. In this example, the time step size is set to 5. So we make subsets of the data with each subset containing a sequence of data points over a period time. Here each subset consists of five data points. The superscript is the subset number.
+
+We merge the subsets into a single 3D data structure. These form the input to RNN, and the targets are desired output. When the first subset is fed into the RNN, we want it to output the first row of the target.
+
+Here the targets are real numbers, so it is a regression problem. We can also use RNNs for classification.
+
+NOTE: A series of data points within a subset are dependent on each other. Therefore, we cannot randomly sample or shuffle these sequential data points. However, the subsets are independent of each other. So we can randomly sample or shuffle the subsets.
+
+== Structure of an RNN ==
+
+We consider the following notations:
+
+* stem:[\mathbf{X}] - the input is a 3D array representing stem:[(\text{batch_size}, \text{no. of time steps}, \text{no. of features})].
+* stem:[\mathbf{Y}] - the target is a 2D array representing stem:[(\text{batch_size}, \text{no. of features})].
+
+Leaving out the batch dimension, we get
+
+* stem:[\mathbf{x}^{(i,t)}]: A stem:[(1,D)] vector that denotes the data point of the stem:[t]th time step of the stem:[i]th subset, where stem:[D] is the number of features. For example, stem:[\mathbf{x}^{(1,3)}] denotes the data point of the third time step of the first subset.
+* stem:[x_j^{(i,t)}]: A scalar that denotes the stem:[j]th feature value of the stem:[t]th time step of the stem:[i]th subset. For example, stem:[x_2^{(1,3)}] denotes the second feature value of the third time step of the first subset.
+* stem:[\mathbf{h}^{(i,t)}]: A stem:[(1,H)] vector that denotes the output of the hidden layer for the input at the stem:[t]th time step of the stem:[i]th subset. Here stem:[H] is the number of neurons in the recurrent layer.
+* stem:[\mathbf{y}^{(i)}]: A stem:[(1,D)] vector that denotes the prediction for a subset.
+
+image::.\images\rnn_working_01.png[align='center']
+
+Like a feedforward network, an RNN has an input layer, a hidden layer and an output layer. There may be biases connected to the hidden and output layers. Let's say that each layer has two neurons. The hidden layer is a recurrent layer. The recurrence occurs 5 times, which is the number of time steps.
+
+* The weights between the input layer and the recurrent layer are stem:[\mathbf{W}_{xh}], a stem:[D \times H] matrix where stem:[D] is the number of features / the number of neurons in the input layer and stem:[H] is the number of neurons in the recurrent layer. 
+* The weights between the recurrent layer and the output layer are stem:[\mathbf{W}_{ho}], a stem:[H \times O] matrix where stem:[O] is the number of neurons in the output layer.
+* The weights of the recurrent layer are stem:[\mathbf{W}_{hh}], a stem:[H \times H] matrix.
+
+CAUTION: Each time step shares only one stem:[\mathbf{W}_{hh}] and one stem:[\mathbf{W}_{xh}].
+
+* stem:[\mathbf{b}_h] is a stem:[(1,H)]-dimensional vector containing the bias added to the hidden layer.
+* stem:[\mathbf{b}_o] is a stem:[(1,O)]-dimensional vector containing the bias added to the output layer.
+
+The internal structure of one time step of RNN is:
+
+image::.\images\rnn_cell.png[align='center', 300, 200]
+
+Data points in each subset are fed into the input layer at each time step. The outputs of the recurrent layer of the first time step are fed into the second time step. In this way, the outputs of each step are propagated to the last time step. This way, all the past information will be available in the final time step. The outputs of the recurrent layer at the last time step are fed into the output layer.
+
+* In the case of many-to-one structured RNN, the output layer gives us a single prediction stem:[\hat{\mathbf{y}}^{(i)}], a stem:[(1,O)]-dimensional vector representing the output for the stem:[i]th subset. We then compute the loss using the outputs of the output layer stem:[\hat{\mathbf{y}}^{(i)}] and the target data stem:[\mathbf{y}^{(i)}].
+
+* In the case of many-to-many structured RNN, the output layer gives us predictions stem:[\hat{\mathbf{y}}^{(i,t)}] at each time step, which is a stem:[(1,O)]-dimensional vector representing the output at the stem:[t]th time step of the stem:[i]th subset. We then compute the loss using the outputs of the output layer stem:[\hat{\mathbf{y}}^{(i,t)}] and the target data stem:[\mathbf{y}^{(i,t)}].
+
+
+
+
+

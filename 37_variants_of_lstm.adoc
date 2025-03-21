@@ -1,0 +1,115 @@
+= Variants of LSTM =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Peephole LSTM ==
+Peephole LSTM is a traditional LSTM with peephole connections added. Peephole connections allow the gates to utilize the previous cell state as well as the previous hidden state. LSTM augmented by peephole connections can learn the fine distinction between sequences of spikes spaced either 50 or 49 time steps apart.
+
+=== Cell Structure of Peephole LSTM ===
+In traditional LSTMs, the current input data stem:[\mathbf{x}^t], and the previous hidden state stem:[\mathbf{h}^{t-1}] are input to each gate. And we know that
+
+[stem]
+++++
+\mathbf{h}^{t-1} = \tanh(\mathbf{c}^{t-1}) \odot \mathbf{o}^{t-1}
+++++
+
+Therefore, we can see that the information of stem:[\mathbf{c}^{t-1}] is also input to each gate. However, if the output gate is closed, that is, if stem:[\mathbf{o}^{t-1}] is stem:[\mathbf{0}], then the information of stem:[\mathbf{c}^{t-1}] cannot be input to each gate. Then each gate cannot receive any information from the previous state.
+
+Peephole LSTM solves this problem by adding peephole connections. The information of stem:[\mathbf{c}^{t-1}] is directly input to each gate through these connections. Even if the output gate is closed, information from the previous state can still be passed to each gate. The internal structure of a peephole LSTM cell is
+
+image::.\images\peephole_lstm.png[align='center', 800, 600]
+
+[stem]
+++++
+\begin{align*}
+\mathbf{f}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_f + \mathbf{h}^{t-1} \, \mathbf{R}_f + \mathbf{c}^{t-1} \, \mathbf{P}_f + \mathbf{b}_f) \\
+
+\mathbf{i}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_i + \mathbf{h}^{t-1} \, \mathbf{R}_i + \mathbf{c}^{t-1} \, \mathbf{P}_i + \mathbf{b}_i) \\
+
+\tilde{\mathbf{c}}^t & = \tanh(\mathbf{x}^t \, \mathbf{W}_c + \mathbf{h}^{t-1} \, \mathbf{R}_c + \mathbf{b}_c) \\
+
+\mathbf{c}^t & = \mathbf{c}^{t-1} \odot \mathbf{f}^t + \tilde{\mathbf{c}}^t \odot \mathbf{i}^t \\
+
+\mathbf{o}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_o + \mathbf{h}^{t-1} \, \mathbf{R}_o + \mathbf{c}^t \, \mathbf{P}_o +\mathbf{b}_o) \\
+
+\mathbf{h}^t & = \tanh(\mathbf{c}^t) \odot \mathbf{o}^t \\
+
+\hat{\mathbf{y}}^t & = f_o(\mathbf{h}^{t} \, \mathbf{W}_{y} + \mathbf{b}_y)
+
+\end{align*}
+++++
+
+where stem:[\mathbf{P}_f , \mathbf{P}_i, \mathbf{P}_o] are stem:[(p \times p)] matrix with stem:[p] being the number of units in the hidden LSTM layer.
+
+== Coupled Input and Forget Gate ==
+
+Forget gate is suppressing some components of stem:[\mathbf{c}^{t-1}], then the input gate can only update those components with the new information.
+
+[stem]
+++++
+\mathbf{c}^t = \mathbf{c}^{t-1} \odot \mathbf{f}^t + \tilde{\mathbf{c}}^t \odot (1-\mathbf{f}^t) \\
+++++
+
+image::.\images\lstm_variant_02.png[align='center', 500, 400]
+
+[stem]
+++++
+\begin{align*}
+\mathbf{f}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_f + \mathbf{h}^{t-1} \, \mathbf{R}_f + \mathbf{b}_f) \\
+
+\tilde{\mathbf{c}}^t & = \tanh(\mathbf{x}^t \, \mathbf{W}_c + \mathbf{h}^{t-1} \, \mathbf{R}_c + \mathbf{b}_c) \\
+
+\mathbf{c}^t & = \mathbf{c}^{t-1} \odot \mathbf{f}^t + \tilde{\mathbf{c}}^t \odot (1-\mathbf{f}^t) \\
+
+\mathbf{o}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_o + \mathbf{h}^{t-1} \, \mathbf{R}_o + \mathbf{b}_o) \\
+
+\mathbf{h}^t & = \tanh(\mathbf{c}^t) \odot \mathbf{o}^t \\
+
+\hat{\mathbf{y}}^t & = f_o(\mathbf{h}^{t} \, \mathbf{W}_{y} + \mathbf{b}_y)
+
+\end{align*}
+
+++++
+
+Here we don't have a separate input gate stem:[\mathbf{i}^t], it is replaced with the complement of the forget gate stem:[1-\mathbf{f}^t].
+
+== Gated Recurrent Unit ==
+Gated Recurrent Unit (GRU) is a variant of LSTM that improves the learning speed of the networks by simplifying the structure of the LSTM into two gates: a reset gate stem:[\mathbf{r}^t] and an update gate stem:[\mathbf{z}^t]. Unlike LSTM, GRU cells do not have a separate cell state stem:[\mathbf{c}], but only a hidden state stem:[\mathbf{h}]. The gradients can flow uninterrupted through the hidden state, similar to shortcut connection in a highway network.
+
+The internal structure of a single GRU cell is
+
+image::.\images\gru_cell.png[align='center', 700, 600]
+
+Let stem:[n] be the batch size, stem:[m] be the number of features, stem:[p] be the number of hidden units.
+
+* stem:[\mathbf{W}_r], stem:[\mathbf{W}_z], stem:[\mathbf{W}_g] are stem:[(m \times p)] matrices.
+* stem:[\mathbf{H}_r], stem:[\mathbf{H}_z], stem:[\mathbf{H}_g] are stem:[(p \times p)] matrices.
+* stem:[\mathbf{b}_r], stem:[\mathbf{b}_z], stem:[\mathbf{b}_g] are stem:[(1 \times p)] vectors.
+
+[stem]
+++++
+\begin{align*}
+\mathbf{r}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_r + \mathbf{h}^{t-1} \, \mathbf{H}_r + \mathbf{b}_r) \\
+
+\mathbf{z}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_z + \mathbf{h}^{t-1} \, \mathbf{H}_z + \mathbf{b}_z) \\
+
+\mathbf{g}^t & = \tanh(\mathbf{x}^t \, \mathbf{W}_g + \mathbf{r}^t \odot (\mathbf{h}^{t-1} \cdot \mathbf{H}_g ) + \mathbf{b}_g) \hspace{1cm} \text{or} \\
+
+\mathbf{g}^t & = \tanh(\mathbf{x}^t \, \mathbf{W}_g + (\mathbf{r}^t \odot \mathbf{h}^{t-1}) \cdot \mathbf{H}_g + \mathbf{b}_g) \\
+
+\mathbf{h}^t & = (1-\mathbf{z}^t) \odot \mathbf{h}^{t-1} + \mathbf{z}^t \odot \mathbf{g}^t \\
+
+\hat{\mathbf{y}}^t & = f_o(\mathbf{h}^{t} \, \mathbf{W}_{y} + \mathbf{b}_y)
+
+\end{align*}
+++++
+
+where there are two ways to compute the candidate activation stem:[\mathbf{g}^t]. The second method is used in the figure above. The current state stem:[\mathbf{h}^t] is a weighted average of stem:[\mathbf{h}^{t-1}] and stem:[\mathbf{g}^t].
+
+* The reset gate stem:[\mathbf{r}^t] is similar to the forget gate in LSTM and controls how much of the previous hidden state information is used to compute candidate activations. If stem:[\mathbf{r}^t] is stem:[\mathbf{0}], then the reset gate is closed. That is, no previous hidden state information is used when computing the candidate activation.
+
+* The candidate activation stem:[\mathbf{g}^t] is new information computed with the current input stem:[\mathbf{x}^t] and the previous hidden state stem:[\mathbf{h}^{t-1}].
+
+* The update gate stem:[\mathbf{z}^t] determines how much of the candidate activations to apply when computing the next hidden state stem:[\mathbf{h}^t]. If stem:[\mathbf{z}^t = \mathbf{0}], then we pass the previous hidden state information as is to the next time step, i.e., stem:[\mathbf{h}^t = \mathbf{h}^{t-1}]. There is no new information to update stem:[\mathbf{h}] at this time step.

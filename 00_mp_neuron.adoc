@@ -70,7 +70,7 @@ image::.\images\mp_neuron_04.png[align='center',  500, 300]
 Thus we can model this relation with the neuron (on the right side) with a threshold value of 0. This is infact X NOR Y logic function.
 
 === What does one unit do? ===
-The unit has a threshold logic unit which does stem:[\sum_i x_i \geq \theta]. It sets a threshold or boundary stem:[\sum_i x_i = \theta]. For a two variable case, this will be a line stem:[x_1 + x_2 - \theta = 0]. For three variables, it will a plane. For more than three, it will be a hyperplane. It basically creates a linear separation in the input space, i.e., a linear classifier.
+The unit has a threshold logic unit which does stem:[\sum_i x_i \geq \theta]. It sets a threshold or boundary stem:[\sum_i x_i = \theta]. For a two variable case, this will be a line stem:[x_1 + x_2 - \theta = 0]. For three variables, it will be a plane. For more than three, it will be a hyperplane. It basically creates a linear separation in the input space, i.e., a linear classifier.
 
 image::.\images\mp_neuron_05.png[align='center',  300, 300]
 

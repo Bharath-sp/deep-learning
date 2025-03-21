@@ -1,0 +1,23 @@
+= Blocks of Transformers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Positional Encoding ==
+Since the Transformer contains no recurrence and no convolution, in order for the model to make use of the order of the sequence, we must inject some information about the relative or absolute position of the tokens in the sequence.
+
+For example, in the given time series, the second and the fifth data points are equal to 2.5. But the second 2.5 is on an upward path, and the fifth 2.5 is on a downward path. These are represented by the same vector, but must be handled differently.
+
+In the Seq2Seq model, this data is processed sequentially, one by one. The second 2.5 follows 1.2 and the fifth 2.5 follows 2.9. Therefore, the Seq2Seq model can distinguish between these two.
+
+However, in the Transformer, these two will not be distinguished because this data is processed simultaneously in parallel. To solve this problem, the authors of this model added "positional encodings" to the input embeddings at the bottoms of the encoder and decoder stacks.
+
+The data points are converted into embedding vectors. In the example, the size of the vector, d_model, is 8. Since the second and fifth data points are identical, their embedding vectors will also be identical. If positional encodings are added here, these two will be different. The positional encodings have the same dimension d_model as the embeddings, so that the two can be summed.
+
+
+
+
+
+
+

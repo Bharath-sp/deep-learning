@@ -1,0 +1,45 @@
+= Language Models =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== What is a Language Model ==
+A model that models the probability of token sequences in any language (of characters or words). These models can
+
+* Compute the probability of a given token sequence. Given a token sequence the model says if it is a feasible set of words in a sequence, i.e., whether the given sequence of symbols makes sense (listening/reading skills). Say stem:[y_1, y_2, y_3, \dots] is a given token sequence ( a sentence in a language). The model computes the probability of this sentence using the Bayes' rule.
++
+[stem]
+++++
+P(y_1, y_2, y_3, \dots) = P(y_1) \cdot P(y_2 \, | \, y_1) \cdot P(y_3 \, | \, y_2, y_1) \cdot P(y_4 \, | \, y_3, y_2, y_1)
+++++
+* Generate sequences from the distribution of language (writing and speaking skills) that make sense. That is, the model predicts the next token given the previous tokens. Depending on the task, we also condition on the input stem:[\mathbf{x}].
++
+[stem]
+++++
+y^* = \arg \max P(y_t \, | \, y_1, y_2, \dots, y_{t-1})
+++++
++
+The model searches over the vocabulary space and predicts that token stem:[y_t] for which the probability given the previous tokens stem:[y_1, y_2, \dots, y_{t-1}] is the maximum. As a result, we get a probability distribution stem:[p(y_t \, | \, y_1, y_2, \dots, y_{t-1})] over the vocabulary.
+
+Neural networks such as RNN and LSTM can consume an input sequence stem:[y_1, y_2, \dots, y_{t-1}] and predict the next token in the sequence.
+
+image::.\images\lang_model_01.png[align='center', 600,400]
+
+From the resulting probability distribution, we can select the word that has the highest probability and predict it as the next token. Then, this word is added to the sequence, i.e., as input to the next time step and the process is repeated. This give us an encoder-decoder framework. It is a standard modeling paradigm for sequence-to-sequence tasks.
+
+TIP: This language model is at the word level, but we can also do it at the character level.
+
+*When do we stop:*
+
+We add two additional tokens to the vocabulary:
+
+* <sos>: to indicate the start of the sequence.
+* <eos>: to indicate the end of the sequence.
+
+The process is stopped when the model predicts <eos> as the next token. In the machine translation application, we add these two tokens to each input and target sequence in the training data.
+
+
+
+
+

@@ -1,0 +1,141 @@
+= Basics of CNN =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Problems with MLPs ==
+Some of the problems with MLPs are:
+
+* Suppose we have a trained MLP model that takes 20 features as input stem:[\mathbf{x}^0]. We cannot use this model to make predictions on inputs with different dimensions, say a test point with 30 features. Additionally, reducing these 30 features to 20 is not a viable solution, as the transformed features may not preserve the same meaning as those the model was originally trained on. CNNs can be used to handle this problem of change in input dimensions.
+
+* Image processing: Suppose an object of interest appears only at specific positions in the training data, then only a subset of neurons learn to detect it. And, if the object appears at a different position in a test sample, an MLP fails to recognize it. Moreover, collecting training data with every object at all possible positions to train the MLP for position-invariant detection would be impractical and highly inefficient. And flattening an image to feed to an MLP also removes the structure. So we cannot use MLPs for processing images. 
+
+* In an MLP, neurons in each layer operate independently, as they do not share weight parameters. 
+
+Convolutional Neural Network (CNN) are a class of artificial neural networks (ANNs) that are designed to recognize images. It is widely used in computer vision tasks such as image classification, object detection, and image segmentation. The term "Convolutional Neural Networks" was used by Yann LeCun et al. in their architecture of LeNet for the task of recognizing handwritten digits.
+
+* We can have a convolutional layer to convert inputs to the required dimensions. This way, CNNs can handle input of varying size.
+
+* CNNs exhibit shift and spatial invariance, i.e., it can detect objects regardless of their position in an image. The operation of convolution helps us achieve this. Convolution acts as a powerful feature extractor. For example, we can use the convolution operation to extract the positions of a specific pattern of interest in the input signal.
++
+image::.\images\cnn_basics_00.png[align='center', 700, 400]
+
+* And we also share the parameters across neurons of a layer in CNN. 
+
+== Basics of CNN ==
+Let's see how CNN recognizes images with a simple CNN model that classifies MNIST images. Say we an image stem:[\mathbf{x}] and the target stem:[y] for this images is 3.
+
+image::.\images\cnn_basics_01.png[align='center']
+
+=== Convolutional Layer ===
+
+The CNN scans an input image using multiple filters, known as *kernels*, to extract complex visual patterns from that image. In this example, each filter is a stem:[5 \times 5] matrix. We have two filters. These filters extract features from an image by moving across the image and computing cross-correlation or convolution with the parts of the image that the filter covers.
+
+The operation of cross-correlation or convolution produces *feature or activation maps*. Each kernel (or filter) extracts different features. The feature maps are the results of the filters observing the image from different perspectives.
+
+. We apply the first filter to the top left corner of the image and compute the cross-correlation. The result will be the first pixel value of the first feature map.
+
+. Then we move this filter a little bit to the right and compute the cross-correlation with this part. The filter can move one pixel at a time, or multiple pixels. The number of steps taken while performing convolution is called *stride*. The result will be the second pixel value of the first feature map. 
+
+. In this way, we compute the cross-correlation while moving the filter to the right end of the image. Then move this filter down a bit and repeat the above process. 
+
+. Repeat this process to scan the entire image with the first filter. Then we get the first feature map.
+
+. Then we use the second filter to generate the second feature map.
+
+The convolution operation preserves the input structure, i.e., the output structure is the same as the input structure. And the adjacent components in the output are influenced by adjacent parts in the input.
+
+This is the convolutional layer, the core component of CNN. Multiple convolutional layers can be used. The feature maps which are the outputs of the first convolutional layer becomes the input image of the second convolutional layer.
+
+=== Cross-Correlation ===
+There are two ways to apply filters on images in a convolutional layer: cross-correlation and convolution. Both are techniques used in signal processing.
+
+Cross-correlation allows us to measure the similarity between two signals, while convolution combines two signals to produce another signal. The cross-correlation between two matrices stem:[\mathbf{X}] (image) and stem:[\mathbf{W}] (filter) is computed as follows:
+
+image::.\images\cnn_basics_02.png[align='center', 500, 400]
+
+The default value for stride in convolutional layers is 1. The shape of the feature map stem:[(n-i+1, m-k+1)] is for the case where the stride is 1. We can also pass the summation result through an activation function to get stem:[f_{00}, f_{01}, f_{10}, f_{11}].
+
+NOTE: CNN is called convolutional neural networks, but most practical applications, such as Tensorflow and Pytorch, use cross-correlation instead of convolution.
+
+=== Feed-Forward Network ===
+The feature maps from the final convolutional layer are flattened and fed into a feed-forward network. We define a loss stem:[L] and use this to update the parameters of the MLP network and all elements of the filters via the backpropagation algorithm.
+
+Initially, the elements of each filter are filled with random values. Then they are updated repeatedly using gradient descent to minimize the loss.
+
+== Padding ==
+Padding refers to adding extra pixels around the borders of an input or feature map. The most common padding value is zero. Instead of zeroes, we can also pad with signal values that are present at the edges.
+
+image::.\images\cnn_padding_01.png[align='center', 800, 500]
+
+Here stem:[p] represents the padding size per side. Applying a filter to an input image or the output feature map of a previous convolutional layer results in a smaller feature map than the input image. The more convolutional layers we have, the smaller the feature maps will be. 
+
+Without padding, the resulting feature map would be of shape stem:[2 \times 2]. And it is computed as:
+
+image::.\images\cnn_padding_02.png[align='center', 500, 400]
+
+The stem:[x_{11}] pixel in the middle is used four times in the feature map computation, while the stem:[x_{00}] pixel on the top left corner is used only once. Therefore, the feature map contains relatively little information about stem:[x_{00}]. This can result in the information loss at the borders of the input image. Applying padding can increase stem:[x_{00}] information in the feature map. Thus, padding takes care of size reduction of the input after convolution. We can add multiple layers of padding.
+
+== Dilation ==
+Dilation in a convolutional layer means expanding the receptive field of the kernel by inserting zeros (or skipping elements) in between its values. In other words, it is expanding the kernel by adding rows and columns of zeroes. This allows the kernel to capture larger context without increasing the number of parameters. This operation makes the kernel sparse.
+
+In a 2D convolution, a dilation rate of (2,2) means the kernel elements are spaced apart by 2 pixels along both the height and width. A standard stem:[3 \times 3] kernel is
+
+image::.\images\dilation_01.png[align='left', 500, 400]
+
+The kernel is stem:[5 \times 5], but with only 9 parameters (saving 16 parameters).
+
+TIP: The default value of dilation in Pytorch is 1.
+
+== Pooling ==
+A pooling layer downsamples the output feature maps of the convolutional layer to produce new feature maps of smaller size. It scans the feature map using a filter to extract important pixels. In other words, it groups multiple activations and replaces by a representative one. The default value for stride in pooling layers is the kernel size.
+
+The filter in the pooling layer has no trainable parameters, only the size of the filter is defined. In this example, the pooling size is stem:[2 \times 2]. The most popular pooling methods are max-pooling and average-pooling. Max pooling extracts the largest value in the area covered by the filter, while average pooling computes the average of the pixel values in that area. 
+
+If the size of the pooling filter is equal to the size of the input feature map, it is a global pooling layer.
+
+image::.\images\cnn_pooling_01.png[align='center', 800, 500]
+
+NOTE: We loose some information in pooling.
+
+== Types of Convolutional Layers ==
+There are three types of convolutional layers: 1D convolution, 2D convolution, and 3D convolution.
+
+* A 1D convolutional layer can be used for sequence data such as time series and natural processing data, and the filters move in only one direction.
+* A 2D convolutional layer is typically used for RGB images, where the filters move in two directions.
+* A 3D convolutional layer can be used for 3D image slices, such as medical imaging, or for videos, such as action recognition data. The filters slide in three directions.
+
+The structures of the input data are 3-dimensional, 4-dimensional, and 5-dimensional, respectively, including the batch dimension.
+
+image::.\images\cnn_basics_03.png[align='center]
+
+== Overall Structure of CNN ==
+The convolutional layer extracts features from the input data and generates feature maps. The pooling layer downsamples the feature maps to produce the final feature map. There can be one or more convolutional layers. As we progress with the convolutional layers, it is recommended to have kernels of increasing size. This allows us to captue more features.
+
+image::.\images\cnn_basics_04.png[align='center]
+
+[NOTE]
+====
+* The pooling layer can be connected to each convolutional layer or can be omitted.
+* Activation can be applied before or after the pooling layer.
+====
+
+*Why flattening the feature map in the final stage is appropriate, while doing the same at the input stage is not:*
+
+The final feature map has more number of channels with small spatial dimensions (height, width, depth). We didn't flatten the original input as we may lose the structure of it and an MLP cannot handle it.
+
+But now, each channel in the resulting final feature map has different feature extracted, i.e., each channel has different content (lines, objects, face, etc.). All the information with respect to a feature is captured concisely in a single channel. So we can flatten the feature map at this stage and feed it into an MLP.
+
+*How CNNs can handle inputs of different sizes:*
+
+Once the design of a CNN is fixed, the number of channels cannot change, i.e., the number of channels are fixed by the definition of the number of filters in each convolutional layer. But the spatial dimensions (height, width, depth) are allowed to vary.
+
+Suppose the original input has a size of stem:[(32,32,3)] and the final feature map has a size of stem:[(5,5,100)], where stem:[5 \times 5] is the spatial dimension and 100 is the number of channels. The final feature map is flattened into a 2500-dimensional vector and fed into an MLP.
+
+Now suppose we feed an input of different size to this CNN, say, stem:[(64, 64,3)]. Then the final feature map may have a different size, say stem:[(7,7,100)]. On flattening it, we get a 4900-dimensional vector. This cannot be fed into the MLP as the MLP can only handle 2500 inputs.
+
+A global pooling layer helps us getting the final feature map of same spatial dimensions, regardless of the spatial dimensions of the original input. This layer can convert the feature maps of size stem:[(5,5,100)] or stem:[(7,7,100)] into stem:[(1,1,100)]. Then on flattening it, we always get an input of size 100.
+
+
+

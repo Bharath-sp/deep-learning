@@ -8,18 +8,16 @@
 Can a simple algorithm mimic how we think and make decisions? Enter the Perceptron - a groundbreaking idea that transformed AI. But how does this single-layer model draw the line between decisions?
 
 == What is a Perceptron? ==
-In 1957, Frank Rosenblatt introduced a more generalized model. This model also performs linear classification, but the inputs can be real stem:[-\infty] to stem:[\infty] and different weights can be given to different input components. This model gives us a mechanism to provide more importance to some inputs and less to others. And also a mechanism to learn the weights.
+In 1957, Frank Rosenblatt introduced a more generalized model. This model performs linear classification, but unlike its predecessors, it allows input values to range continuously from stem:[-\infty] to stem:[\infty]. Additionally, it assigns different weights to different input components, providing a mechanism to emphasize certain inputs more than others. Furthermore, it incorporates a learning mechanism for adjusting these weights.
 
-In 1957, Frank Rosenblatt introduced a more generalized model. This model also performs linear classification, but unlike its predecessors, it allows input values to range continuously from stem:[-\infty] to stem:[\infty]. Additionally, it assigns different weights to different input components, providing a mechanism to emphasize certain inputs more than others. Furthermore, it incorporates a learning mechanism for adjusting these weights.
-
-The output of the model is 1 when the weighted combination of the inputs is greater than a threshold. The outputs are binary.
+The model outputs 1 when the weighted sum of the inputs exceeds a certain threshold. The outputs are binary.
 
 [stem]
 ++++
 f(\mathbf{x}) = \begin{cases} 1 & \text{when } \sum_i w_ix_i +b \geq 0 \text{ or } \sum_i w_ix_i \geq -b \\ 0 & \text{else} \end{cases}
 ++++
 
-Here stem:[\mathbf{w}, b] are all parameters to learn. Consider a step function stem:[\sigma(x)], whose behaviour is as
+Here stem:[\mathbf{w}, b] are the parameters to be learned. Consider a step function stem:[\sigma(x)], which behaves as follows:
 
 image::.\images\perceptron_01.png[align='center',  600, 400]
 
@@ -30,13 +28,13 @@ Using this step function, our function stem:[f(\mathbf{x})] can be compactly wri
 f(\mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b)
 ++++
 
-In general, stem:[\sigma(.)] is called as activation function. Here we have used a step function. A single Perceptron can be described as
+In general, stem:[\sigma(.)] is referred to as the activation function. Here, we have used a step function. A single Perceptron can be described as follows:
 
 [.text-right]
 .Figure Credit: DeepAI
 image::.\images\perceptron_02.png[align='center',  500, 400, tit]["Mesa Verde Sunset, by JAVH"]
 
-The bias term denotes the overall bias in the output when all the inputs are zero. We can consider stem:[w_0 = b] and stem:[x_0=1]. Doing so, we convert the affine function into a linear function by augmenting the data with one more dimension.
+The bias term represents the inherent offset in the output when all inputs are zero. By defining stem:[w_0 = b] and stem:[x_0=1], we effectively transform the affine function into a linear function by augmenting the data with an additional dimension.
 
 [stem]
 ++++
@@ -44,10 +42,10 @@ f(\mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x}) \hspace{1cm} \text{where } \m
 ++++
 
 == Perceptron Learning Algorithm ==
-It is a supervised learning algorithm. We are given a training data stem:[\{(\mathbf{x}_i, t_i)\}_{i=1}^N], where stem:[\mathbf{x}_i \in \mathbb{R}^D] and stem:[t_i \in \{-1,1\}]. Let stem:[k] capture the number of updates.
+It is a supervised learning algorithm. Suppose we are given a training dataset stem:[\{(\mathbf{x}_i, t_i)\}_{i=1}^N], where stem:[\mathbf{x}_i \in \mathbb{R}^D] and stem:[t_i \in \{-1,1\}]. Let stem:[k] represent the number of updates.
 
-. Start with stem:[k \leftarrow 0] and stem:[\mathbf{w}_k = \mathbf{0}]. Here stem:[\mathbf{w}_k \in \mathbb{R}^{D+1} ], which includes the bias term as well. Also consider stem:[\mathbf{x}_i \in \mathbb{R}^{D+1}] by adding a constant 1.
-. While stem:[\exists] stem:[i \in \{1,2,\dots, N\}] such that stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) \leq 0], update
+. Initialize stem:[k \leftarrow 0] and stem:[\mathbf{w}_k = \mathbf{0}]. Here stem:[\mathbf{w}_k \in \mathbb{R}^{D+1}] includes the bias term. Also, stem:[\mathbf{x}_i \in \mathbb{R}^{D+1}], extended by appending a constant 1.
+. While there exists an index stem:[i \in \{1,2,\dots, N\}] such that stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) \leq 0], update
 +
 [stem]
 ++++
@@ -57,41 +55,47 @@ k & \leftarrow k+1
 \end{align*}
 ++++
 +
-While there exists a misclassification, we perform the above updates. The condition stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) \leq 0] checks for any misclassification. It is to ensure that both the ground truth and the prediction have the same sign. 
+The condition stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) \leq 0] checks for any misclassification, ensuring that the predicted label and the ground truth have the same sign. While there exists a misclassification, we perform the above updates.
++
+If the current stem:[\mathbf{w}_k] misclassifies any data point, an update is performed using: stem:[\mathbf{w}_{k+1} = \mathbf{w}_k + t_i \mathbf{x}_i]. What does this update do?
 
-When current stem:[\mathbf{w}_k] is misclassifying any of the data points, we perform an update: stem:[\mathbf{w}_{k+1} = \mathbf{w}_k + t_i \mathbf{x}_i]. What does this update do?
+=== Geometric Interpretation ===
 
-*Geometric View:*
+We express the model as: stem:[\mathbf{w}_k^\top \mathbf{x}_i = \mathbf{\tilde{w}}_k^\top \mathbf{x}_i + w_0], where 
 
-We know stem:[\mathbf{w}_k^\top \mathbf{x}_i = \mathbf{\tilde{w}}_k^\top \mathbf{x}_i + w_0], where 
+* stem:[\mathbf{w} = (w_0, w_1, \dots, w_D)] and stem:[\mathbf{x} \in \mathbf{R}^{D+1}] on the left-hand side.
+* stem:[\mathbf{\tilde{w}} = (w_1, \dots, w_D)] and stem:[\mathbf{x} \in \mathbf{R}^D] on the right-hand side.
 
-* stem:[\mathbf{w} = (w_0, w_1, \dots, w_D)] and stem:[\mathbf{x} \in \mathbf{R}^{D+1}] in the LHS.
-* stem:[\mathbf{\tilde{w}} = (w_1, \dots, w_D)] and stem:[\mathbf{x} \in \mathbf{R}^D] in the RHS.
-
-The decision surface stem:[\mathbf{w}_k^\top \mathbf{x}_i = 0], shown in blue, is always perpendicular to stem:[\mathbf{\tilde{w}}_k] and its displacement from the origin is controlled by the bias parameter stem:[w_0].
+The decision boundary, defined by stem:[\mathbf{w}_k^\top \mathbf{x}_i = 0] (the blue line), is always perpendicular to stem:[\mathbf{\tilde{w}}_k], while the bias term stem:[w_0] determines its displacement from the origin.
 
 image::.\images\perceptron_03.png[align='center',  400, 300]
 
-Say we have a point stem:[\mathbf{x}_i] with the true label as stem:[t_i=-1] in the right side of our decision boundary. As per the weights learned, stem:[\mathbf{w}_k^\top \mathbf{x}] is stem:[>0] for this point, which makes stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) < 0]. Therefore, it is a misclassification.
+*Case 1: A Misclassified Point on the Right*
 
-The update step can be seen geometrically as
+Consider a misclassified point stem:[\mathbf{x}_i] with the true label stem:[t_i=-1] located on the right side of the decision boundary. Since the learned weights yield stem:[\mathbf{w}_k^\top \mathbf{x} >0], we have stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) < 0], indicating misclassification.
 
-. stem:[\mathbf{x}_i] is multiplied with stem:[t_i], in this case as stem:[t_i=-1], this becomes stem:[-\mathbf{x}_i]. Note here stem:[\mathbf{x}_i \in \mathbb{R}^2].
-. The vector stem:[-\mathbf{x}_i] is added to stem:[\mathbf{\tilde{w}}_k] to get stem:[\mathbf{\tilde{w}}_{k+1}].
-. Th intercept term stem:[w_{0,k}] is updated to stem:[w_{0,k+1} = w_{0,k} + (t_i* 1) = w_{0,k} -1].
-. The decision boundary is set orthogonal to stem:[\mathbf{\tilde{w}}_{k+1}].
+The update step is performed as follows:
+
+. Multiply stem:[\mathbf{x}_i] by stem:[t_i], which, in this case, results in stem:[-\mathbf{x}_i] (since stem:[t_i=-1]). Note here stem:[\mathbf{x}_i \in \mathbb{R}^2].
+. Add the vector stem:[-\mathbf{x}_i] to stem:[\mathbf{\tilde{w}}_k], yielding stem:[\mathbf{\tilde{w}}_{k+1}].
+. Update the intercept term stem:[w_{0,k}] to stem:[w_{0,k+1} = w_{0,k} + (t_i* 1) = w_{0,k} -1].
+. Adjust the decision boundary to remain orthogonal to stem:[\mathbf{\tilde{w}}_{k+1}].
 
 image::.\images\perceptron_04.png[align='center',  800, 500]
 
-Say we have a point stem:[\mathbf{x}_j] with the true label as stem:[t_i=1] in the left side of our decision boundary. As per the weights learned, stem:[\mathbf{w}_k^\top \mathbf{x}] is stem:[<0] for this point, which makes stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) < 0]. Therefore, it is also a misclassification. The update step is carried out to correct this misclassification.
+*Case 2: A Misclassified Point on the Left*
 
-On each update, the decision boundary is re-aligned to correct the misclassification. This process is repeated for every misclassified data point.
+Now consider a misclassified point stem:[\mathbf{x}_j] with the true label stem:[t_i=1], located on the left side of the decision boundary. Since the learned weights yield stem:[\mathbf{w}_k^\top \mathbf{x} < 0], we have stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) < 0], indicating misclassification. The same update rule is applied to correct this.
 
-*Mathematical View:*
+With each update, the decision boundary is adjusted to correct misclassifications. This process is repeated for every misclassified data point.
 
-The condition to check for misclassification is stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) \leq 0].
+=== Mathematical Analysis ===
 
-Case 1: When stem:[t_i = 1], stem:[\mathbf{w}_k^\top \mathbf{x}_i \leq 0]. The update equation is
+The misclassification condition is given by: stem:[t_i(\mathbf{w}_k^\top \mathbf{x}_i) \leq 0].
+
+Case 1: When stem:[t_i = 1]
+
+If stem:[\mathbf{w}_k^\top \mathbf{x}_i \leq 0], the update equation is
 
 [stem]
 ++++
@@ -102,9 +106,11 @@ Case 1: When stem:[t_i = 1], stem:[\mathbf{w}_k^\top \mathbf{x}_i \leq 0]. The u
 \end{align*}
 ++++
 
-We are adding a positive quantity stem:[\|\mathbf{x}_i\|^2] to stem:[\mathbf{w}_k^\top \mathbf{x}_i]. If the positive quantity is large enough, this makes the term stem:[\mathbf{w}_k^\top \mathbf{x}_i] become stem:[>0]. Thus adjusting the decision boundary to correct the misclassification.
+Here, a positive quantity stem:[\|\mathbf{x}_i\|^2] is added to stem:[\mathbf{w}_k^\top \mathbf{x}_i]. If this quantity is sufficiently large, stem:[\mathbf{w}_{k+1}^\top \mathbf{x}_i] becomes positive. Thus adjusting the decision boundary to correct the misclassification.
 
-Case 2: When stem:[t_i = -1], stem:[\mathbf{w}_k^\top \mathbf{x}_i \geq 0]. The update equation is
+Case 2: When stem:[t_i = -1]
+
+If stem:[\mathbf{w}_k^\top \mathbf{x}_i \geq 0], the update equation is
 
 [stem]
 ++++
@@ -115,28 +121,35 @@ Case 2: When stem:[t_i = -1], stem:[\mathbf{w}_k^\top \mathbf{x}_i \geq 0]. The 
 \end{align*}
 ++++
 
-We are subtracting a positive quantity stem:[\|\mathbf{x}_i\|^2] from stem:[\mathbf{w}_k^\top \mathbf{x}_i]. If the positive quantity is large enough, this makes the term stem:[\mathbf{w}_k^\top \mathbf{x}_i] become stem:[<0]. Thus adjusting the decision boundary to correct the misclassification.
+Here, a positive quantity stem:[\|\mathbf{x}_i\|^2] is subtracted from stem:[\mathbf{w}_k^\top \mathbf{x}_i]. If large enough, this forces stem:[\mathbf{w}_{k+1}^\top \mathbf{x}_i] to become negative, thereby correcting the misclassification.
 
 === Convergence ===
 
 ====
-For a linearly separable dataset, the algorithm will converge within a finite number of updates, i.e., when there is a line which is possible to give 100% classification accuracy, this algorithm will find it in a finite number of updates.
+For a linearly separable dataset, the Perceptron Learning Algorithm will converge in a finite number of updates. That is, if a linear decision boundary exists that achieves 100% classification accuracy, the algorithm is guaranteed to find it within a finite number of updates.
 ====
 
-NOTE: Here one update refers to choosing a misclassified data point and updating the boundary.
+NOTE: Here one update refers to selecting a misclassified data point and adjusting the decision boundary accordingly.
 
-On a practical note, we say that a algorithm is converged when either of the following happens:
+*Convergence Criteria:*
 
-* We get 100% training accuracy. And when there are multiple linear boundaries possible with 100% accuracy, the perceptron learning algorithm treats all of them equal, and returns any one of them.
-* We reach maximum number of updates specified.
-* When the difference stem:[\| \mathbf{w}_{k+1} - \mathbf{w}_k \|] is very small stem:[< \epsilon] for all misclassified stem:[\mathbf{x}_i]'s. 
+In practice, we consider the algorithm to have converged when any of the following conditions are met:
 
-The factors that influence the number of updates stem:[k], i.e., the convergence of this algorithm are
+* 100% training accuracy is achieved. If multiple linear boundaries exist that provide perfect classification, the Perceptron Learning Algorithm treats them as equivalent and returns any one of them.
+* The maximum number of updates is reached.
+* The weight updates become negligible, i.e., when the difference stem:[\| \mathbf{w}_{k+1} - \mathbf{w}_k \|] is very small stem:[< \epsilon] for all misclassified stem:[\mathbf{x}_i]. 
 
-* The margin between the positive and the negtive class data points stem:[\gamma].
-* How far the samples are from the origin, i.e., the radius stem:[R] of the circle which is encompassing the largest data point.
+*Factors Affecting Convergence:*
 
-For linearly separable data, it can be shown that stem:[k < \frac{R^2}{\gamma^2}]. The Perceptron Learning Algorithm makes at most stem:[\frac{R^2}{\gamma^2}] updates (after which it returns a separating hyperplane).
+The number of updates stem:[k] and thus the speed of convergence depends on:
+
+* The margin stem:[\gamma] between the positive and negtive class data points.
+* The distribution of data points, particularly how far they are from the origin. This is characterized by the radius stem:[R] of the smallest circle that encompasses all data points.
+
+For linearly separable data, it can be shown that the number of updates satisfies the bound: stem:[k < \frac{R^2}{\gamma^2}]. The Perceptron Learning Algorithm performs at most stem:[\frac{R^2}{\gamma^2}] updates before finding a separating hyperplane.
+
+== Conclusion ==
+The Perceptron learning algorithm updates its weights iteratively to correctly classify all data points. Each update repositions the decision boundary, ensuring it aligns with the true class labels. While convergence is guaranteed for linearly separable data, in non-separable cases, the algorithm continues indefinitely unless a stopping criterion is introduced.
 
 == References ==
 

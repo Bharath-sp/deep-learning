@@ -1,0 +1,86 @@
+= Sequence-to-Sequence Models =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+There are various applications in which the input stem:[\mathbf{x}] and output stem:[\mathbf{y}] are sequence data. Given an input sequence, we may want to generate the output sequence.
+
+* In the task of time series forecasting, stem:[\mathbf{x}] can be a past time series and stem:[\mathbf{y}] can be a future time series.
+
+* In chatbots in NLP, stem:[\mathbf{x}] can be question sentences and stem:[\mathbf{y}] can be answer sentences.
+
+* In machine translation, stem:[\mathbf{x}] can be sentences in English and stem:[\mathbf{y}] can be translated sentences.
+
+Thus, to learn sequence-to-sequence tasks, the model should model the conditional probability stem:[p(y_t \, | \, \mathbf{x}, y_1, \dots, y_{t-1})] of a token stem:[y_t] given the input sequence stem:[\mathbf{x}] and previous predicted tokens. The encoder-decoder framework is a standard modeling paradigm for sequence-to-sequence learning tasks. This model was proposed for machine translation in the field of NLP, but it can be applied to any dataset composed of sequences, such as time series prediction. The challenges in the sequence-to-sequence learning task are that
+
+* The number of words in the input sequence and output sequence doesn't need to be the same.
+* In machine translation, the order of the words between the input sequence and output sequence can be different.
+* The output symbols (the words in the output sequence) may not seem related to the input.
+
+The seq2seq model particularly deals with sequences of word representation vectors for NLP, but here we will deal with sequences of real-valued vectors for time series analysis.
+
+== RNN Encoder-Decoder Model ==
+An RNN based encoder-decoder model is a sequence-to-Sequence model consisting of two recurrent neural networks. One RNN encodes the given sequence of tokens into a fixed length vector representation, and the other RNN decodes the representation into another sequence of tokens. Both the encoder and decoder are composed of RNNs such as GRU and LSTM. RNNs can be constructed as single- or multi-layer, and uni- or bi-directional.
+
+A two-layered uni-directional RNN encoder-decoder model is
+
+image::.\images\rnn_en_decoder_01.png[align='center', 700, 500]
+
+Both feature stem:[\mathbf{x}] and target stem:[\mathbf{y}] in the dataset are sequence data. The feature stem:[\mathbf{x} = \{x_1, \dots, x_T\}] is input to the encoder, and the target stem:[\mathbf{y} = \{y_1, \dots, y_T\}] is output from the decoder. In NLP applications, <sos> is fed to the first time step and <eos> is fed to the last time step of the encoder. Similarly in the decoder, the start signal is <sos> and the end signal is <eos>.
+
+IMPORTANT: The number of time steps in the encoder and decoder doesn't need to be the same. 
+
+A zero vector stem:[\mathbf{h}_0] (or a learned embedding vector) is passed as the initial hidden state to the encoder. To the decoder
+
+* The final hidden states stem:[\mathbf{h}] (and stem:[\mathbf{c}]) of the encoder are fed as the initial hidden states to the decoder. Sometimes we pass these hidden states through a dense layer and the outputs of the dense layer are fed as the initial hidden states to the decoder.
+* The start signal, also known as the seed. This is usually the <sos> token. In some models, the final input token of the encoder is reused as the first input to the decoder. This is generally used when a dataset is structured such that the last encoder input naturally aligns with the first decoder input.
+* In NLP applications, a context vector stem:[\mathbf{c}] is also passed. This is simply the final hidden state from the encoder. This vector contains the summary of the source sentence. This context vector is passed to all the time steps of the decoder.
+
+image::.\images\en_decoder_translation.png[align='center', 700, 400]
+
+Hope is that:
+
+* The final encoder hidden states "encodes" all the information about the source. The single vector stem:[\mathbf{h}_T] is able to retain all the information about the input sequence.
+* This vector is sufficient for the decoder to generate the target sequence.
+
+There is no guarantee to this, but it is our hypothesis.
+
+== Feeding Data ==
+The structure of the training data is as follows:
+
+image::.\images\rnn_en_decoder_02.png[align='center']
+
+Both stem:[\mathbf{X}] and stem:[\mathbf{Y}] have 3D array structure representing stem:[(\text{batch_size}, \text{no. of time steps}, \text{no. of features})]. Here both the encoder and decoder RNN have five time steps. They are of size stem:[(\text{None}, 5, 2)].
+
+The subsets of the decoder inputs are used only during training and are used for *teacher forcing*.
+
+== Training Process ==
+The encoder and decoder are combined into a single model and trained using a method called teacher forcing.
+
+The encoder receives past time series and outputs hidden states. These hidden states are fed as the initial hidden states to the decoder. The decoder uses the hidden states of the encoder and the input values of the decoder to output the target.
+
+image::.\images\teacher_forcing.png[align='center']
+
+Since the target must be output at each time step, the decoder RNN must be configured as a many-to-many RNN. The gradients of the loss with respect to each parameter are backpropagated through time from each time step of the decoder to the first time step of the encoder.
+
+The first time step of the decoder takes the final time step value of the encoder input. This causes the next value of the encoder input to be output at the first time step of the decoder.
+
+In the decoder, the output of the previous time step must be fed into the next time step. However, since the output of the previous time step is the predicted value, known values that are more accurate than the predicted value are input to the next time step during training. This is known as teacher forcing.
+
+However, during prediction, the outputs of the previous time steps must be fed into the next time steps. Once the training is complete, we save the trained parameters so that they can be used in the prediction model.
+
+== Prediction Process ==
+We use the following procedure to predict future time series:
+
+image::.\images\rnn_en_decoder_03.png[align='center']
+
+. Feed the last stem:[n] data points of the time series into the trained encoder model, and find the final hidden states. The final hidden states contain all the information about this sequence data.
+
+. Using the previously trained decoder RNN model, create a single-step model. Since the parameters of an RNN are independent of the number of time steps, the parameters of a single-step RNN and a multi-step RNN are the same. Feed the hidden state of the encoder and the last data point of the time series into the model. And find the next hidden state and the next predicted value.
+
+. Feed the next hidden state and predicted value of the first decoder back into the single decoder model. And find the next hidden state and the next predicted value. Repeat this process a given number of times.
+
+
+

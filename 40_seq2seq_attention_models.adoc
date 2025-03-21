@@ -1,0 +1,96 @@
+= Seq-to-Seq Attention Model =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+In the plain encoder-decoder framework, the encoder got only a single vector stem:[\mathbf{h}_T] to encode the entire source sequence. This is actually a harsh compression which may lead to encoder forgetting some important things. And different information in the source sequence may be relevant for the decoder at different time steps.
+
+The solution is to use a different context at each time step of the decoder. We can selectively choose the suitable context and pass it to the decoder for predicting each word. This is handled through an attention mechanism. The sequence-to-sequence attention model is a sequence-to-sequence model with attention mechanism added. We add an attention layer to the existing sequence-to-sequence model. This allows the model to focus its attention on a subset of encoder states while decoding.
+
+There are several variations of attention mechanisms proposed in the literature to enhance Seq2Seq models. The major ones are:
+
+. Bahdanau (Additive) Attention
+. Luong (Multiplicative) Attention
+. Self-Attention
+. Multi-Head Attention
+
+These all employ a different context at each time step of decoding. For machine translation application, Bahdanau or Luong Attention can be used. 
+
+== Luong Attention - Model Architecture ==
+Let's consider a simple seq2seq model with five time steps in the recurrent layer of the encoder and decoder. This model uses a uni-directional LSTM (or GRU) as the encoder. This time, let's also add a time series embedding layer to the input layer. We add a regular feedforward layer for the embedding layer.
+
+Suppose we have 30 hidden units in the output layer of the FFN network (with no hidden layer). When a stem:[(2,1)] vector is input, the output from the embedding layer will be a fixed-size vector of size stem:[(30,1)]. If stem:[x_1] and stem:[x_2] are independent in a raw sense, their combination in the embedding layer allows the model to learn cross-dependencies that might emerge from the data. If stem:[x_1] and stem:[x_2] truly have no interaction, the model can learn to treat them separately by assigning near-zero weights to interaction terms.
+
+We get a vector representation of the time series data from the embedding layer.
+
+NOTE: This embedding layer is optional for time series data.
+
+Now, let's add an attention layer to this model. Attention is applied after generating a tentative decoder hidden state. Before passing the output of the decoder to the output layer, the model refers to the output of each step of the encoder to determine which ones are more important and which ones are less important. We use the concept of similarity to determine this. The dot product of two vectors can be used as a way to measure their similarity. This is called dot-product attention.
+
+There are several other ways to compute this. It can also be done through a matrix (bilinear) or using an MLP layer.
+
+image::.\images\attention_types.png[align='center', 600, 300]
+
+Let's look at the Luong attention which uses the dot-product attention:
+
+image::.\images\seq2seq_attention.png[align='center']
+
+. Compute the dot product between the first (tentative) output vector of the decoder stem:[\mathbf{d}_1], and all the hidden states of the encoder stem:[\mathbf{e}_1, \dots, \mathbf{e}_5]. These give us 5 scalar values (because we have five time steps in the encoder), stem:[\{a_1, \dots, a_5\}].
+
+. Apply softmax function to this vector to get the *attention scores or weights*. We get a probability distribution, which can be called as attention distribution. In this example, 
++
+** stem:[\mathbf{d}_1] and stem:[\mathbf{e}_4] have the greatest similarity.
+** stem:[\mathbf{d}_1] and stem:[\mathbf{e}_3] have the lowest similarity.
++
+Treating stem:[\mathbf{e}_4] as important and stem:[\mathbf{e}_3] as less important in the first time step of the decoder can help predict the target of the output layer.
+
+. Multiply the output vector of the encoder stem:[\mathbf{e}_1, \dots, \mathbf{e}_5] by these probabilities. As a result, we get five vectors. Sum these vectors to get the weighted average of the vector stem:[\mathbf{e}], according to the attention score stem:[\mathbf{a}]. The gives us a vector of *attention values*. This vector contains a lot of information about the important stem:[e] and a little information about the less important stem:[e].
+
+. Concatenate this vector with stem:[\mathbf{d}_1]. This is the attentional hidden state vector that is passed to the output layer of the first step of the decoder.
+
+. Repeat the same for the remaining time steps.
+
+Here we pass two hidden states: One is the hidden state passed from the encoder to the decoder. And the other is the hidden state passed from the attentional layer to the decoder.
+
+CAUTION: This is the architecture for the training process, where we feed the actual input data to the decoder. In the prediction process, we feed each time step output to the next step of the decoder. In both training and prediction, we feed either <sos> or the input data of the last step of the encoder to the first step of the decoder.
+
+Thus, the decoder can 'attend' to different portions of the input at each time step. The hidden states of the encoder are fixed. At each step, the decoder focuses on a subset of these hidden states to get the context and use it predict a token.
+
+Note there is no supervision in attention. There are only source and target sentences. The objective to minimize the loss makes the model learn the attention automatically, i.e., the subset to attend at each step is learned itself by the model.
+
+== Bahdanau Attention - Model Architecture ==
+Also called Additive Attention because it uses a feedforward network to compute attention scores. It uses a bi-directional LSTM (or GRU) as the encoder. Unlike Luong attention, in this architecture, attention is applied before generating the next word in the decoder.
+
+At the first step of the decoder:
+
+image::.\images\bahdanau_01.png[align='center', 500, 400]
+
+Here stem:[\mathbf{s}_0 = \mathbf{h}_3] or stem:[\mathbf{h}_3] passed through a dense layer. At the second step of the decoder:
+
+image::.\images\bahdanau_02.png[align='center', 700, 400]
+
+== Attention Values Computation ==
+Let's see how to compute the attention scores and attention values using the dot-product approach. The encoder's output size is stem:[(\text{batch_size}, \text{no. of time steps}, \text{no. of units in the recurrent layer}) = (1,4,3)].
+
+image::.\images\seq2seq_attention_02.png[align='center']
+
+== Application ==
+
+*Image Captioning using RNNs with Attention:*
+
+The decoder in the above model doesn't consider the hidden states of the encoder stem:[\mathbf{e}_i] to be an ordered set. At each step, we just take convex combination of these hidden states stem:[\mathbf{e}_i]. Every time we focus on a specific part of the encoder states. As there is no temporal order in an image, we can use this attention mechanism for computer vision problems as well.
+
+Given an image, suppose we applied CNN and got the output of size stem:[(H,W,\text{channel}) = (3 \times 3 \times 256)]. We can think of this feature map as 9 features, each with 256 dimensions. The nine features are stem:[\{\mathbf{h}_{11}, \mathbf{h}_{12}, \dots, \mathbf{h}_{33} \}]. These vectors are considered as the hidden states of the encoder.
+
+We apply attention mechanism to these encoder states, so the decoder can 'attend' to different portions of the input at each time step. There are 9 features, each corresponds to a different region in the image. When the decoder attends a subset of the encoder hidden states, it specifically describes the contents in that region.
+
+image::.\images\cnn_attention.png[align='center', 600, 400]
+
+As the model generates each word, its attention changes to reflect the relevant parts of the image.
+
+
+
+
+

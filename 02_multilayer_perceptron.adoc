@@ -1,26 +1,26 @@
-= Multi Layered Perceptrons =
+= Multi-Layer Perceptrons =
 :doctype: book
-:author: Bharath Kumar S P
-:email: bharath030195@gmail.com
 :stem: latexmath
 :eqnums:
 :toc:
 
+Can a simple neural network really model any Boolean function? While a single-layer perceptron struggles with non-linearly separable problems like XOR, a multi-layer perceptron (MLP) breaks through these limitations - making it a universal Boolean function approximator! 
+
 == Shortcomings of Perceptrons ==
-Perceptron requires the data to be linearly separable for the algorithm to converge. Sometimes, no hyperplane can separate the data. For example, the XOR data is not linearly separable. If we attempt to realize XOR function with a single perceptron
+The Perceptron algorithm requires data to be linearly separable for convergence. However, some datasets cannot be separated by a single hyperplane. A classic example is the XOR function, which is not linearly separable. If we attempt to implement XOR using a single perceptron:
 
 image::.\images\xor_perceptron.png[align='center', 800, 500]
 
-The conditions cannot be satisfied for any stem:[w_0, w_1, w_2], this shows why a single perceptron couldn't model the XOR data. Let's increase the number of perceptrons.
+There exist no values of stem:[w_0, w_1, w_2] that satisfy the conditions required to correctly classify all points. This demonstrates why a single-layer perceptron cannot model the XOR function. Let's increase the number of perceptrons.
 
-== Multi Layered Perceptrons ==
-Here we connect multiple perceptrons in a network fashion, thus it is called Multi Layered network of Perceptrons (MLP) or Multi Layered Perceptrons. We can learn non-linear functions using MLP.
+== Multi-Layer Perceptrons (MLP) ==
+To overcome this limitation, we can connect multiple perceptrons in a networked structure, forming a Multi-Layer Perceptron (MLP). Unlike a single perceptron, an MLP can learn non-linear decision boundaries, allowing it to model complex functions such as XOR.
 
-Consider five perceptrons with the configuration as below
+Consider an MLP with five perceptrons, configured as follows:
 
 image::.\images\xor_perceptron_03.png[align='center', 600, 400]
 
-Notice, each of them fire for exactly one specific input pattern.
+Each perceptron in this network activates for one specific input pattern, producing the following outputs:
 
 * For stem:[x_1=0, x_2=0], the output stem:[\mathbf{h}] is stem:[(1,0,0,0)].
 * For stem:[x_1=0, x_2=1], the output stem:[\mathbf{h}] is stem:[(0,1,0,0)].
@@ -29,18 +29,30 @@ Notice, each of them fire for exactly one specific input pattern.
 
 image::.\images\xor_perceptron_04.png[align='left', 700, 500]
 
-Here the conditions we need to satisfy are simple stem:[w_0 + w_1 < 0, w_0 + w_2 \geq 1, w_0 + w_3 \geq 1,  w_0 + w_4 < 0]. Here we don't have any conflicts and these conditions can be easily satisfied. So this network of perceptrons can model the XOR data.
+To correctly classify XOR, the network must satisfy the following conditions:
 
-=== MLPs as Universal Boolean Functions ===
+[stem]
+++++
+\begin{align*}
+w_0 + w_1 & < 0, \\
+w_0 + w_2 & \geq 1, \\
+w_0 + w_3 & \geq 1, \\
+w_0 + w_4 & < 0
+\end{align*}
+++++
+
+Unlike a single perceptron, these conditions do not conflict and can be satisfied. This confirms that an MLP can successfully model the XOR function, demonstrating the power of multi-layer networks in learning non-linearly separable patterns.
+
+=== MLP as a Universal Boolean Function Approximator ===
 
 ====
-MLP is a universal Boolean function, i.e., it can realize any Boolean function. At least one configuration of MLP is possible for any Boolean function. Note that the result doesn't specify anything on the depth of the network.
+A Multi-Layer Perceptron (MLP) is capable of realizing any Boolean function, meaning that for any given Boolean function, there exists at least one MLP configuration that can represent it. However, this result does not specify the required depth of the network.
 
-*Any* Boolean function of stem:[N] inputs can be exactly represented with stem:[2^N] perceptions in the hidden layer and 1 in the output layer.
+In general, any Boolean function with stem:[N] inputs can be exactly represented using stem:[2^N] perceptrons in the hidden layer and one perceptron in the output layer.
 ====
 
 === Universal AND Function ===
-Say we have three Boolean input variables. And we want to model the function stem:[f(X_1, X_2, X_3) = X_1X_2\bar{X}_3]. This can be modelled by the following network
+Consider a Boolean function with three input variables: stem:[f(X_1, X_2, X_3) = X_1X_2\bar{X}_3]. This function can be modeled using the following network:
 
 image::.\images\universal_and_01.png[align='center', 800, 500]
 
@@ -51,11 +63,11 @@ In general, any AND function of stem:[N] variables
 f(x_1, \dots, x_N) = \left(\bigwedge_{i=1}^L x_i \right) \land\left(\bigwedge_{i=L+1}^N \bar{x}_i \right)
 ++++
 
-can be modelled using a single perceptron with the below configuration
+can be modelled using a single perceptron with the following configuration
 
 image::.\images\universal_and_02.png[align='center', 500, 400]
 
-where the weights of inputs stem:[x_1, \dots, x_L] are set to 1 and the weights of inputs stem:[x_{L+1}, \dots, x_N] are set to -1. And the threshold is stem:[L].
+where the weights for inputs stem:[x_1, \dots, x_L] are set to 1 and the weights for inputs stem:[x_{L+1}, \dots, x_N] are set to -1. The threshold is stem:[L].
 
 === Universal OR Function ===
 Similarly, any OR function of stem:[N] variables
@@ -65,52 +77,76 @@ Similarly, any OR function of stem:[N] variables
 f(x_1, \dots, x_N) = \left(\bigvee_{i=1}^L x_i \right) \lor \left(\bigvee_{i=L+1}^N \bar{x}_i \right)
 ++++
 
-can be modelled using a single perceptron with the below configuration
+can be modelled using a single perceptron with the following configuration
 
 image::.\images\universal_or_01.png[align='center', 500, 400]
 
-where the weights of inputs stem:[x_1, \dots, x_L] are set to 1 and the weights of inputs stem:[x_{L+1}, \dots, x_N] are set to -1. And the threshold is stem:[L-N+1].
+where the weights for inputs stem:[x_1, \dots, x_L] are set to 1 and the weights for inputs stem:[x_{L+1}, \dots, x_N] are set to -1. The threshold is stem:[L-N+1].
 
-We know that all Boolean functions can be written in terms of a logical OR of logical ANDs and complements. So we can exploit these two networks to model any Boolean functions. Say we need to model the below Boolean function
+Since all Boolean functions can be expressed in terms of AND, OR, and NOT operations, we can use these two networks to model any Boolean function.
+
+*Example: Modeling a Boolean Function*
+
+Consider the following Boolean function:
 
 [stem]
 ++++
 f(x_1, x_2, x_3, x_4) = \bar{x}_1x_2x_3x_4 + x_1x_2\bar{x}_3x_4 + x_1x_2x_3x_4
 ++++
 
-We can model each term using a single perceptron in the hidden layer and a single perceptron to add (logical OR) all the results to realize stem:[f(x_1, x_2, x_3, x_4)].
+* Each term can be represented by a single perceptron using an AND operation in the hidden layer.
 
-Any truth table can be expressed in this manner! A one-hidden-layer MLP is a Universal Boolean Function.
+* A final output perceptron combines all hidden layer outputs using an OR operation to compute stem:[f(x_1, x_2, x_3, x_4)].
+
+This approach demonstrates that any truth table can be represented in this manner, making a one-hidden-layer MLP a universal Boolean function approximator.
 
 === Number of Neurons Required ===
-What is the largest number of perceptrons required in the single hidden layer to realize an N-input-variable function? We saw that any Boolean function of stem:[N] inputs can be exactly represented with stem:[2^N+1] perceptrons. But this is inefficient and very expensive to do. The size of the hidden layer grows exponentially. Here individual hidden neurons don't cooperate with each other, i.e., we have designed it in a way that each neuron is responsible for each input-output scenario.
+What is the maximum number of perceptrons required in the (single) hidden layer to model an stem:[N]-input Boolean function?
 
-stem:[2^N + 1] neurons are sufficient to represent any Boolean function but it is not a necessary condition. We can model it with lesser number of neurons as well. Say we have a Boolean function as
+We have seen that any Boolean function of N inputs can be represented with at most stem:[2^N + 1] perceptrons However, this approach is inefficient, as the hidden layer size grows exponentially. In this configuration, each hidden neuron independently handles a specific input-output scenario, with no cooperation between neurons.
+
+While stem:[2^N + 1] neurons are sufficient to represent any Boolean function, they are not necessary - we can often use fewer neurons through simplifications.
+
+*Simplification using Karnaugh Maps*
+
+Using a Karnaugh map, we can simplify Boolean expressions. For example:
 
 [stem]
 ++++
-f(x_1, x_2, x_3, x_4) = \bar{x}_1x_2x_3x_4 + x_1x_2\bar{x}_3x_4 + \dots + x_1x_2x_3x_4 
+AB\bar{C} + ABC = AB(\bar{C} + C) = AB
 ++++
 
-Karnaugh map can be used to reduce and simplify the Boolean expressions. For example, the expression stem:[AB\bar{C} + ABC] can be reduced to stem:[AB(\bar{C} + C) = AB]. Karnaugh map represents a truth table as a grid, adjacent 1s can be 'grouped' to reduce the complexity of the Boolean expression. We can then configure the MLP as per the simplified Boolean expression.
+Karnaugh maps represent truth tables as grids, where adjacent 1s can be grouped together, reducing complexity. After simplification, the MLP can be configured based on the reduced Boolean expression, significantly reducing the required number of neurons.
 
-What arrangement of ones and zeros cannot be reduced further? For e.g., say we have four input variables and the Karnaugh map is
+*Worst-Case Scenario: When Reduction is Not Possible*
+
+If the arrangement of 1s and 0s in the Karnaugh map does not allow for further grouping, the Boolean function remains complex. For example, consider a function with four input variables where the Karnaugh map is:
 
 image::.\images\karnaugh_01.png[align='center', 400, 300]
 
-In such cases, we won't be able to group any adjacent cells. So there should be 8 terms in the Boolean expression, stem:[\bar{W}\bar{X}\bar{Y}\bar{Z} + \bar{W}\bar{X}\bar{Y}Z + \dots + WXYZ]. So to model a Boolean function of 4 variables, we need a maximum of 8 neurons in the hidden layer and 1 in the output layer.
+In this case, no adjacent cells can be grouped, meaning the Boolean function requires eight terms:
+stem:[\bar{W}\bar{X}\bar{Y}\bar{Z} + \bar{W}\bar{X}\bar{Y}Z + \dots + WXYZ]
+
+This implies that modeling a Boolean function of four variables requires *a maximum* of 8 neurons in the hidden layer and 1 in the output layer.
 
 ====
-In general, to model a Boolean function of stem:[N] input variables, we need *a maximum of* stem:[2^{N-1}] neurons in the single hidden layer and 1 in the output layer.
+In general, for an stem:[N]-input Boolean function, we need *a maximum of* stem:[2^{N-1}] neurons in the (single) hidden layer and one neuron in the output layer.
 
-NOTE: The number of neurons required reduce drastically when we increase the number of layers.
+NOTE: The number of neurons required reduces significantly when we increase the number of layers.
 ====
 
-The XOR function that we modelled with 4 neurons in the hidden layer can be instead modelled using only 2 neurons in the hidden layer. The Karnaugh map for the XOR function is
+=== Optimizing the XOR Function ===
+
+Previously, we modeled the XOR function using 4 neurons in the hidden layer. However, we can reduce this to just 2 neurons. The Karnaugh map for XOR is
 
 image::.\images\karnaugh_02.png[align='center']
 
-The Boolean expression is as stem:[f(X_1, X_2) = \bar{X}_1X_2 + X_1\bar{X}_2]. This expression can be modelled using a perceptron for each term and 1 in the output layer.
+The simplified Boolean expression for XOR is: stem:[f(X_1, X_2) = \bar{X}_1X_2 + X_1\bar{X}_2]. This function can be efficiently modeled using: one perceptron for each term in the hidden layer and one perceptron in the output layer to perform the final OR operation.
+
+== Conclusion ==
+* MLPs can model any Boolean function, making them universal Boolean function approximators.
+* The number of required neurons depends on Boolean complexity, but optimizations (such as Karnaugh maps) can drastically reduce network size.
+* Deep networks (more than one hidden layer) require fewer neurons than wide, single-hidden-layer networks, making them more efficient.
 
 == References ==
 . CMU School of Computer Science. See https://www.cs.cmu.edu/~bhiksha/courses/deeplearning/Spring.2018/www/slides/lec2.universal.pdf

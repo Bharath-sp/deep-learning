@@ -1,0 +1,54 @@
+= Residual Neural Networks =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+To achieve better performance, we need to build deeper neural networks. But deeper networks are more difficult to train. Residual neural networks provides us a residual learning framework to ease the training of networks that are substantially deeper than those used previously. They can be used to build deeper CNNs.
+
+== Residual Block ==
+In general, deeper networks suffer from degradation problems. With the network depth increasing, accuracy gets saturated and then degrades rapidly. Such degradation is not caused by overfitting, and adding more layers to a suitably deep model leads to higher training error. This problem can be addressed by a deep residual learning framework.
+
+The following is the residual building block which is the core component of residual neural networks. A shortcut or skip connection is added to a series of layers. This connection allows the input to the residual block to be added to the output of these layers before the final activation function is applied.
+
+image::.\images\residual_block_01.png[align='center', 300, 300]
+
+If the input and output dimensions of these layers are the same, we can simply add them together. Otherwise, we need to adjust the dimensions of the input before adding it.
+
+This connection then allow gradients to flow more smoothly within the network during backpropagation, alleviating the vanishing gradient problem and enabling deeper networks to learn.
+
+=== ResNet34 ===
+An example of a residual neural network with 34 layers:
+
+image::.\images\resnet34.png[align='center']
+
+The 2D convolution layers marked with the same colors have the same input-output dimensions. So the shortcut connection shown as a solid connection can add input to output as is. The shortcut connection shown as a dotted line downsamples the input and then adds it to the output. This is the architecture of ResNet34.
+
+image::.\images\resnet34_layers.png[align='center', 500, 400]
+
+* The input image has dimensions of stem:[(224, 224, 3)], where 3 is the number of channels.
+* The initial convolutional layer has 64 kernels of size stem:[(7 \times 7)].
+* The stride is 2 and the zero-padding is 3. The output dimension of this convolutional layer will be stem:[(112, 112)].
+* For the max pooling layer, the pooling filter size is stem:[(3 \times 3)], stride 2 and padding 1. The output dimension of this pooling layer will be stem:[(56, 56)].
+
+Then the building blocks are shown in brackets with the numbers of blocks stacked. Downsampling is performed by conv3_1, conv4_1, and conv5_1 with a stride of 2 (the first layer in each block).
+
+=== ResNet20 for CIFAR-10 ===
+The networks' inputs are stem:[(32 \times 32)] images, with the per-pixel mean subtracted. An example of a residual neural network with 20 layers is the ResNet20 model which is used for CIFAR-10 image classification.
+
+image::.\images\resnet20_01.png[align='center']
+
+This architecture has three sets of layers:
+
+* The first set has three residual blocks, each consisting of two convolutional layers. So in total, the first set has 7 convolutional layers (2D conv layers). The number of filters in each layer is 16. The output dimensions from each layer is stem:[(32,32,16)].
+
+* The second set has 6 convolutional layers. The number of filters in each layer is 32. The first layer in this set performs downsampling with a stride of 2. So the output dimensions from each layer is stem:[(16,16,32)]. Since the input and output dimensions are different here, the input dimensions need to be adjusted to match the output dimensions to configure a shortcut connection. The input data is downsampled by a convolutional layer with 32 filters, stem:[1 \times 1] kernel, stride 2, and no padding.
+
+* The third set also has 6 convolutional layers.
+
+Excluding the GAP layer, there are a total of 20 layers.
+
+
+
+

@@ -1,0 +1,68 @@
+= Word Embeddings =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+How do we feed text into models?
+
+Models cannot understand text. We need numerical (vector) representation of words. Such vectors or word embeddings that are representations of words can be fed into the model. In practice, we make a vocabulary of words. For each word in vocabulary, we assign an index. For each index, a look-up table contains its embedding, i.e., we represent each word in vocabulary with a vector.
+
+NOTE: Vocabulary stem:[V] is a set of allowed words. It doesn't need to be all the possible words in a language. It can just be a set of words related to a domain. To account for unknown words (the ones which are not in the vocabulary), usually a vocabulary contains a special token 'UNK'.
+
+So how do we get these word vectors?
+
+== One-Hot Vectors ==
+The easiest we can do is to represent words as one-hot vectors: for the stem:[i]th word in the vocabulary, the vector has 1 on the i-th dimension and 0 on the rest. The length of each vector will be the size of the vocabulary stem:[|V|].
+
+image::.\images\word_embed_01.png[align='center', 250, 200]
+
+But one-hot vectors are not the best way to represent words. One of the problems is that for large vocabularies, these vectors will be very long; space inefficient. This is undesirable in practice. And most importantly, there is no notion of similarity (or distance) between words. For example, one-hot vectors think that cat is as close to dog as it is to table. The one-hot vectors do not capture meaning. To capture meaning of words in their vectors, we first need to define the notion of meaning that can be used in practice.
+
+== Word Semantics ==
+How we, humans, get to know which words have similar meaning? Suppose we are given the below contexts:
+
+image::.\images\word_embed_02.png[align='center', 400, 300]
+
+The words that fit into these contexts must be similar. Thus an extremely valuable idea is that:
+
+====
+Words which frequently appear in similar contexts have similar meaning.
+====
+
+This idea can be used to make word vectors capture their meaning. "To capture meaning" and "to capture contexts" are inherently the same. Therefore, all we need to do is to put information about word contexts into word representation. There are different ways to do this.
+
+TIP: We must use different contexts of the word to build up a representation for it. This ensures we capture the full meaning of the word.
+
+== Count-Based Methods ==
+The general procedure to define a count-based method consists of two steps:
+
+* Construct a word-context matrix, in which rows represents words in the vocabulary and columns represent contexts. The words in the rows and columns will be the same. But at times, we can remove some stopwords from the vocabulary to form the context words. In such case, the words in column will be less than the words in rows.
+* Reduce its dimensionality.
+
+image::.\images\word_embed_03.png[align='center', 500, 300]
+
+And we need to define two things: what is context? and how to compute the matrix elements?
+
+=== Simple Co-occurence Counts ===
+The simplest approach is to define contexts as surrounding words in a L-sized window. Each matrix element stem:[N_{wc}] is the number of times word stem:[w] appears in context stem:[c], i.e., the number of times a pair of words co-occurs.
+
+For example, suppose our text has "... I enjoy deep learning and NLP ...". Here for the word 'deep', with stem:[L=2], the contexts are "I", "enjoy", "learning", "and". The word 'deep' may also occur in other places in the corpus with different contexts. For a given central word, we see how many times each context word occurs within its contexts in the entire corpus. Doing so, we get the co-occurrence matrix
+
+image::.\images\co_occurence_matrix.png[align='center', 500, 300]
+
+For the word "I", the word "like" has occurred two times in its neighborhood in the corpus. Each row in this matrix gives a vectorial representation of the words. If stem:[N] is the number of context words, then each word is represented by a stem:[N-] dimensional vector. And stem:[L] is a hyperparameter, typically we choose a value between 2 and 10.
+
+CAUTION: If we change the ordering of the context words, the vector representation of words differ.
+
+As the resulting co-occurence matrix is very high-dimensional (grows with the vocabulary size), we carry out SVD to reduce the dimensions.
+
+
+
+
+
+
+
+
+

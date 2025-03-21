@@ -1,0 +1,130 @@
+= Long Short-Term Memory =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+Simple RNNs struggle to learn long-term dependencies because of vanishing or exploding gradients. That is, it is difficult to learn information from the distant past simply by increasing the number of time steps.
+
+The Long Short Term Memory networks (LSTM) was designed to address this problem. LSTM are a special kind of RNN, capable of learning long-term dependencies, i.e., remembering information for long periods of time is practically their default behavior. It uses forget gates to reset previous memories itself at appropriate times and learn new flows when a flow of data unrelated to previous flow comes in.
+
+== Cell Structure of LSTM ==
+LSTM is a architectural modification to RNNs. In a traditional RNN, the process is repeated while passing the hidden state stem:[h] to the next time step. In LSTM, a cell state stem:[c] is added, and this is also passed to the next time step along with stem:[h].
+
+* The cell state is to carry-forward long-term information. Unless it is removed, it will be available at all time steps.
+* The hidden state focuses on the current task.
+
+The internal structure of one time step:
+
+image::.\images\lstm_cell.png[align='center']
+
+An LSTM cell consists of a forget gate, an input gate, a candidate memory, and an output gate. It consists of four blocks. Each block has a trainable parameter stem:[\mathbf{W}] that is multiplied by stem:[\mathbf{x}^t] and a trainable parameter stem:[\mathbf{R}] that is multiplied by stem:[\mathbf{h}^{t-1}].
+
+[stem]
+++++
+\begin{align*}
+\mathbf{f}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_f + \mathbf{h}^{t-1} \, \mathbf{R}_f + \mathbf{b}_f) \\
+
+\mathbf{i}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_i + \mathbf{h}^{t-1} \, \mathbf{R}_i + \mathbf{b}_i) \\
+
+\tilde{\mathbf{c}}^t & = \tanh(\mathbf{x}^t \, \mathbf{W}_c + \mathbf{h}^{t-1} \, \mathbf{R}_c + \mathbf{b}_c) \\
+
+\mathbf{c}^t & = \mathbf{c}^{t-1} \odot \mathbf{f}^t + \tilde{\mathbf{c}}^t \odot \mathbf{i}^t \\
+
+\mathbf{o}^t & = \sigma(\mathbf{x}^t \, \mathbf{W}_o + \mathbf{h}^{t-1} \, \mathbf{R}_o + \mathbf{b}_o) \\
+
+\mathbf{h}^t & = \tanh(\mathbf{c}^t) \odot \mathbf{o}^t \\
+
+\hat{\mathbf{y}}^t & = f_o(\mathbf{h}^{t} \, \mathbf{W}_{y} + \mathbf{b}_y)
+
+\end{align*}
+++++
+
+where stem:[\sigma(.)] is the sigmoid activation function. For many-to-one case, the output is taken only at the last time step stem:[T].
+
+Let stem:[n] be the batch size, stem:[m] be the number of features, stem:[p] be the number of hidden units.
+
+* stem:[\mathbf{x}^t] is the current input data of size stem:[(n\times m)]. This is fed into each block.
+* stem:[\mathbf{W}_f], stem:[\mathbf{W}_i], stem:[\mathbf{W}_c], stem:[\mathbf{W}_o] are stem:[(m \times p)] matrices.
+* stem:[\mathbf{h}^{t-1}] is a stem:[(n \times p)] matrix. This is fed into each block.
+* stem:[\mathbf{R}_f], stem:[\mathbf{R}_i], stem:[\mathbf{R}_c], stem:[\mathbf{R}_o] are stem:[(p \times p)] matrices.
+* stem:[\mathbf{b}_f], stem:[\mathbf{b}_i], stem:[\mathbf{b}_c], stem:[\mathbf{b}_o] are stem:[(1 \times p)] vectors.
+* stem:[\mathbf{f}^t], stem:[\mathbf{i}^t], stem:[\tilde{\mathbf{c}}^t], stem:[\mathbf{c}^t], stem:[\mathbf{o}^t] are stem:[(n \times p)] matrices and are the outputs of respective blocks.
+* stem:[\mathbf{W}_y] is a stem:[(p \times o)] matrix, where stem:[o] is the number of units in the output layer.
+* stem:[\mathbf{b}_y] is a stem:[(1 \times o)] vector.
+* stem:[\hat{\mathbf{y}}^t] is a stem:[(n \times o)] matrix.
+
+Each LSTM cell takes in stem:[\mathbf{h}^{t-1}] and stem:[\mathbf{c}^{t-1}] and outputs stem:[\mathbf{h}^t] and stem:[\mathbf{c}^t].
+
+== Roles of Gates ==
+LSTM can erase, write, and read information from the cells. These are controlled by corresponding gates.
+
+*Forget Gate:*
+
+It controls how much of the previous cell state information stem:[\mathbf{c}^{t-1}] is passed on to the next time step. Since the activation function of the forget gate is sigmoid, stem:[\mathbf{f}^t] is between stem:[\mathbf{0}] and stem:[\mathbf{1}]. This is multiplied by stem:[\mathbf{c}^{t-1}].
+
+* If stem:[\mathbf{f}^t] is stem:[\mathbf{0}], the forget gate is closed. That is, the cell state is reset, the LSTM completely forgets the past memories.
+* If stem:[\mathbf{f}^t] is stem:[\mathbf{1}], 100% of stem:[\mathbf{c}^{t-1}] is passed to remember all past memories.
+
+Note that both stem:[\mathbf{f}^t] and stem:[\mathbf{c}^{t-1}] are matrices, and we do point-wise multiplication. So the entries 0 in stem:[\mathbf{f}^t], makes the same entries 0 in stem:[\mathbf{c}^{t-1}], i.e., it erases the past memories at those entries.
+
+*Candidate Memory:*
+
+It uses the current input data stem:[\mathbf{x}^t] and the previous hidden state stem:[\mathbf{h}^{t-1}] to determine the new information, stem:[\tilde{\mathbf{c}}^t]. This outputs a candidate cell state.
+
+*Input Gate:*
+
+It determines how much of the new information stem:[\tilde{\mathbf{c}}^t] will be reflected. The output of the input gate stem:[\mathbf{i}^t] is multiplied by stem:[\tilde{\mathbf{c}}^t]. The output of stem:[\mathbf{i}^t] is a value between stem:[\mathbf{0}] and stem:[\mathbf{1}]. If the new information is important, the value of stem:[\mathbf{i}^t] increases to store more information, and if it is meaningless, the value of stem:[\mathbf{i}^t] decreases to store less information.
+
+*Output Gate:*
+
+It determines the size of the next hidden state value.
+
+In the formula
+
+[stem]
+++++
+\mathbf{c}^t = \mathbf{c}^{t-1} \odot \mathbf{f}^t + \tilde{\mathbf{c}}^t \odot \mathbf{i}^t
+++++
+
+stem:[\mathbf{c}^{t-1}] is the past information and stem:[\tilde{\mathbf{c}}^t] is the new information. Both stem:[\mathbf{f}^t] and stem:[\mathbf{i}^t] lie between stem:[\mathbf{0}] and stem:[\mathbf{1}]. So here we are actually computing the weighted average of two types of information. The operation stem:[\mathbf{c}^{t-1} \odot \mathbf{f}^t] erases the unwanted past information and reads only the required information, and the operation stem:[\tilde{\mathbf{c}}^t \odot \mathbf{i}^t] writes the new information. The addition of these two results in an updated cell state stem:[\mathbf{c}^t].
+
+At the last time step, out of the information present in stem:[\mathbf{c}^t], we extract the required information to pass using the equation stem:[\mathbf{h}^t = \tanh(\mathbf{c}^t) \odot \mathbf{o}^t]. Here stem:[\mathbf{o}^t] tells us which portion of stem:[\mathbf{c}^t] should be read.
+
+In short, the forget gate erases something, the input gate writes something, and the output gate reads only the required part.
+
+== Feeding Data into LSTM ==
+The structure of the dataset is identical to that of the RNNs. This is the dataset for a many-to-one RNN model. And it is for time series forecasting. Like a traditional RNN, the LSTM layer repeats for a given number of time steps, stem:[T]. In this example, stem:[T=5].
+
+image::.\images\lstm_data_feed.png[align='center']
+
+We compute the loss using the outputs of the output layer and the target data. As the gradients of the loss are backpropagated, all the parameters are updated.
+
+== BPTT in LSTM ==
+The gradient of loss with respect to each parameter is backpropagated through two paths, stem:[\mathbf{c}] and stem:[\mathbf{h}]. In the forward pass operation, the cell state is propagated straight without going through any networks. This is similar to highway or residual connections. Thus, when gradients are backpropagated, they are smoothly backpropagated along this path.
+
+Refering to the above figure, consider one of the paths from stem:[L] to stem:[\mathbf{c}^1] and let's compute stem:[\frac{\partial L}{\partial \mathbf{c}^1}].
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial L}{\partial \mathbf{c}^1} & = \frac{\partial L}{\partial \mathbf{h}^5} \cdot \frac{\partial \mathbf{h}^5}{\partial \mathbf{c}^5} \cdot \frac{\partial \mathbf{c}^5}{\partial \mathbf{c}^4} \cdot \frac{\partial \mathbf{c}^4}{\partial \mathbf{c}^3} \cdot \frac{\partial \mathbf{c}^3}{\partial \mathbf{c}^2} \cdot \frac{\partial \mathbf{c}^2}{\partial \mathbf{c}^1} \\
+& = L' \cdot \mathbf{o}^t \tanh'(\mathbf{c}^t) \cdot \mathbf{f}^5  \cdot \mathbf{f}^4 \cdot \mathbf{f}^3  \cdot \mathbf{f}^2
+\end{align*}
+++++
+
+The derivative terms correspond to the forget gates outputs. Forget gates outputs will become 0 or close to 0 only when the past information is not important. That means, gradient will vanish only if dependency in the forward pass vanishes. If there is no long term dependency, there is no necessity to backpropagate beyond this time step.
+
+But as long as the past information is important, none of these derivative terms shrink as we backpropagate from the last time step to the first time step. In this path, gradients backpropagate without any problem.
+
+CAUTION: We know that stem:[\mathbf{c}^t = \mathbf{c}^{t-1} \odot \mathbf{f}^t + \tilde{\mathbf{c}}^t \odot \mathbf{i}^t]. Note stem:[\tilde{\mathbf{c}}^t] also depends on stem:[\mathbf{c}^{t-1}]. In the computation of the derivative of stem:[\mathbf{c}^t] with respect to stem:[\mathbf{c}^{t-1}], we have considered only the first term in the summation for simplicity.
+
+image::.\images\lstm_bptt.png[align='center']
+
+In this network, there are paths for the gradients to backpropagate without any problem. Thus, even if stem:[\mathbf{W}_f] is less than 1, stem:[\mathbf{W}_i] or stem:[\mathbf{W}_c] can be greater than 1, and vice-versa. Therefore, it is much less likely to have vanishing or exploding gradients compared to RNN. Hence, LSTMs can handle long-term dependencies better than RNNs.
+
+
+
+
+

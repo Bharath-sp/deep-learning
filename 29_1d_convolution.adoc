@@ -1,0 +1,76 @@
+= 1D Convolution =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+Let's explore CNN models with 1D convolutional layers. A 1D convolutional layer can be used for sequence data such as time series and natural processing data, and the filters move in only one direction.
+
+== Structure of Input ==
+The input is mainly sequence data. The input data used in 1D convolution is three dimensional: stem:[(\text{batch_size}, n, m)].
+
+* The first dimension is the batch size of the input data.
+* The second dimension is the number of rows, which is the length of the sequence, stem:[n].
+* The third dimension is the number of columns, which is the number of features or the size of the embedding vector, stem:[m]. Also referred to as input dimension.
+
+Padding can be added on the top and bottom.
+
+== 1D Convolutional Layer ==
+The filters in the 1D convolutional layer are also three dimensional: stem:[(r, k, m)]. Each filter will have a 2-dimensional structure stem:[(k,m)]. The last dimension of the filter stem:[m] should match the last dimension of the input data.
+
+* The first dimension is the number of filters, stem:[r].
+* The second dimension is the number of rows, stem:[k], in each filter. Also referred to as Kernel size.
+* The third dimension is the number of columns. For 1D convolution, the third dimension of each filter is stem:[m], which is equal to the number of columns in the input data.
+
+NOTE: stem:[r] and stem:[k] are hyperparameters. stem:[k] is usually odd.
+
+image::.\images\conv_1d_01.png[align='center']
+
+We apply the filter to the data and compute the cross-correlation or convolution between the input data and the filters. Each filter produces a 1D feature map. We add a bias to the summation result. Combining these feature maps produces the final feature map, which is the output of the 1D convolutional layer.
+
+* The first filter, stem:[w1], scans the input data as it moves downwards. This will generate the first 1D feature map. This is the first column vector of the feature map.
+
+* The second column vector of the feature map is obtained using the second filter stem:[w_2] and stem:[b_2].
+* Similarly, the third column vector is obtained using the second filter stem:[w_3] and stem:[b_3].
+
+Therefore, the final feature map (the output of the 1D convolutional layer) also has a three-dimensional structure:
+
+[stem]
+++++
+\left( \text{batch_size}, f_1, r \right) = \left( \text{batch_size}, \left \lfloor \frac{n+2p-k}{s}+1 \right \rfloor, r \right)
+++++
+
+where stem:[p] and stem:[s] are the padding size per side and stride values respectively.
+
+The number of trainable parameters in this layer is stem:[r \times k \times m + r]. This feature map is then fed into the next 1D convolutional layer or 1D pooling layer. 
+
+[NOTE]
+====
+With stride = 1 fixed, to ensure that the number of rows in the output feature map equals the number of rows in the input matrix, we need to use `same` padding in the 1D convolution operation. It uses stem:[p=\frac{k-1}{2}].
+
+[stem]
+++++
+n+2p-k+1 = n \implies p=\frac{k-1}{2}
+++++
+====
+
+If the kernel size is even, we might need asymmetric padding (e.g., 1 row on top, 0 rows on bottom).
+
+== 1D Pooling Layer ==
+A pooling layer downsamples the output feature maps of the convolutional layer to produce new feature maps of smaller size. Here is a simple CNN model using a 1D max pooling layer or a 1D global max pooling layer. We can also use 1D average pooling layer.
+
+In the 1D global max pooling layer, the size of the pooling filter is equal to the number of rows in the feature map: stem:[k=f_1]. From the above convolutional layer, stem:[f_1=6].
+
+image::.\images\conv_1d_02.png[align='center']
+
+The output of the 1D pooling layer also has a three-dimensional structure:
+
+[stem]
+++++
+\left( \text{batch_size}, \left \lfloor \frac{n+2p-k}{s}+1 \right \rfloor, r \right)
+++++
+
+TIP: The pooling layers don't have any trainable parameters.
+
+The feature maps are reshaped into a two-dimensional structure and fed into a feed-forward network.

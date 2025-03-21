@@ -1,0 +1,198 @@
+= Backpropagation Through Time =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Learning in RNN ==
+The parameters in RNN are learned through the backpropagation technique. But here the network is over time, and the same parameters are applied at each time step. And as the gradients are backpropagated to previous time steps, the backpropagation in this context is called as backpropagation through time (BPTT).
+
+Consider a many-to-many RNN network. To update the parameters stem:[\mathbf{W}_{xh}, \mathbf{W}_{hh}, \mathbf{W}_{ho}], we need to compute stem:[\frac{\partial L}{\partial \mathbf{W}_{hh}}, \frac{\partial L}{\partial \mathbf{W}_{xh}}, \frac{\partial L}{\partial \mathbf{W}_{ho}}].
+
+Let's first consider stem:[\frac{\partial L}{\partial \mathbf{W}_{hh}}], which is essentially the change in loss stem:[L] for a small change in the parameters stem:[\mathbf{W}_{hh}].
+
+image::.\images\rnn_bptt.png[align='center', 700, 400]
+
+The total loss is
+
+[stem]
+++++
+L = \frac{1}{T} \sum_{t=1}^T L^{(t)} \left(\hat{\mathbf{y}}^{(t)}, \mathbf{y}^{(t)} \right)
+++++
+
+And we know that
+
+[stem]
+++++
+\begin{align*}
+\hat{\mathbf{y}}^{(t)} & = f_o(\mathbf{h}^{(t)} \mathbf{W}_{ho} + \mathbf{b}_o) \\
+\mathbf{h}^{(t)} & = f_h(\mathbf{x}^{(t)} \, \mathbf{W}_{xh} + \mathbf{h}^{(t-1)} \, \mathbf{W}_{hh} + \mathbf{b}_h) \\
+\end{align*}
+++++
+
+A small change in stem:[\mathbf{W}_{hh}] affects stem:[L] in all those highlighted paths (in the figure above).
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial L}{\partial \mathbf{W}_{hh}} & = \frac{1}{T} \sum_{t=1}^T \frac{\partial L^{(t)}}{\partial \mathbf{W}_{hh}} \\
+& = \frac{1}{T} \sum_{t=1}^T \frac{\partial L^{(t)}}{\partial \hat{\mathbf{y}}^{(t)}} \cdot \frac{\partial \hat{\mathbf{y}}^{(t)}}{\partial \mathbf{h}^{(t)}}  \cdot \frac{\partial \mathbf{h}^{(t)}}{\partial \mathbf{W}_{hh}} 
+\end{align*}
+++++
+
+The first two derivative terms are easy to compute. The last one is a little tricky because it is a recursive function. A small change in stem:[\mathbf{W}_{hh}]:
+
+* At the last time step stem:[T=3], it changes stem:[\mathbf{h}^3], that is stem:[\frac{\partial \mathbf{h}^3}{\partial \mathbf{W}_{hh}}].
+
+* At stem:[T=2], it changes stem:[\mathbf{h}^2]. Change in stem:[\mathbf{h}^2] in turn changes stem:[\mathbf{h}^3], that is stem:[\frac{\partial \mathbf{h}^3}{\partial \mathbf{h}^2}  \cdot \frac{\partial \mathbf{h}^2}{\partial \mathbf{W}_{hh}} ].
+
+* At stem:[T=1], it changes stem:[\mathbf{h}^1]. Change in stem:[\mathbf{h}^1] in turn changes stem:[\mathbf{h}^2]. Change in stem:[\mathbf{h}^2] in turn changes stem:[\mathbf{h}^3], that is stem:[\frac{\partial \mathbf{h}^3}{\partial \mathbf{h}^2}  \cdot \frac{\partial \mathbf{h}^2}{\partial \mathbf{h}^1}  \cdot \frac{\partial \mathbf{h}^1}{\partial \mathbf{W}_{hh}} ]
+
+For a small change stem:[\mathbf{W}_{hh}], changes to stem:[\mathbf{h}^1] occurs in one way:
+
+[stem]
+++++
+\frac{\partial \mathbf{h}^1}{\partial \mathbf{W}_{hh}} := \frac{\partial \mathbf{h}^1}{\partial \mathbf{W}_{hh}}
+++++
+
+Changes to stem:[\mathbf{h}^2] occurs in two ways. We sum these two:
+
+[stem]
+++++
+\frac{\partial \mathbf{h}^2}{\partial \mathbf{W}_{hh}} := \frac{\partial \mathbf{h}^2}{\partial \mathbf{W}_{hh}} + \frac{\partial \mathbf{h}^2}{\partial \mathbf{h}^1}  \cdot \frac{\partial \mathbf{h}^1}{\partial \mathbf{W}_{hh}}
+++++
+
+Changes to stem:[\mathbf{h}^3] occurs in three ways:
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial \mathbf{h}^3}{\partial \mathbf{W}_{hh}} & := \frac{\partial \mathbf{h}^3}{\partial \mathbf{W}_{hh}} + \frac{\partial \mathbf{h}^3}{\partial \mathbf{h}^2}  \cdot \frac{\partial \mathbf{h}^2}{\partial \mathbf{W}_{hh}} + \frac{\partial \mathbf{h}^3}{\partial \mathbf{h}^2}  \cdot \frac{\partial \mathbf{h}^2}{\partial \mathbf{h}^1}  \cdot \frac{\partial \mathbf{h}^1}{\partial \mathbf{W}_{hh}}
+\end{align*}
+++++
+
+This can be generalized as follows:
+
+[stem, id='eq_1']
+++++
+\begin{align}
+\frac{\partial \mathbf{h}^t}{\partial \mathbf{W}_{hh}} := \frac{\partial \mathbf{h}^t}{\partial \mathbf{W}_{hh}} + \sum_{i=1}^{t-1} \left( \prod_{j=i+1}^t \frac{\partial \mathbf{h}^j}{\partial \mathbf{h}^{j-1}} \right) \frac{\partial \mathbf{h}^i}{\partial \mathbf{W}_{hh}}
+\end{align}
+++++
+
+
+====
+This is easy to see in the following recurrence relation:
+
+[stem]
+++++
+\begin{align*}
+a_t & = b_t + c_t a_{t-1} && t=1,2,\dots \\
+& = b_t + c_t ( b_{t-1} + c_{t-1} a_{t-2} ) \\
+& = b_t + \sum_{i=1}^{t-1} \left( \prod_{j=i+1}^{t} c_j \right) b_i
+\end{align*}
+++++
+====
+
+The parameters stem:[\mathbf{W}_{xh}] and stem:[\mathbf{W}_{ho}] are also updated by backpropagation.
+
+A small change in stem:[\mathbf{W}_{ho}] affects stem:[L] in three paths (see the figure above), where stem:[T=3]:
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial L}{\partial \mathbf{W}_{ho}} & = \frac{1}{T} \sum_{t=1}^T \frac{\partial L^{(t)}}{\partial \mathbf{W}_{ho}} \\
+& = \frac{1}{T} \sum_{t=1}^T \frac{\partial L^{(t)}}{\partial \hat{\mathbf{y}}^{(t)}} \cdot \frac{\partial \hat{\mathbf{y}}^{(t)}}{\partial \mathbf{W}_{ho}} 
+\end{align*}
+++++
+
+Similarly, a small change in stem:[\mathbf{W}_{xh}] affects stem:[L] in three paths.
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial L}{\partial \mathbf{W}_{xh}} & = \frac{1}{T} \sum_{t=1}^T \frac{\partial L^{(t)}}{\partial \mathbf{W}_{xh}} \\
+& = \frac{1}{T} \sum_{t=1}^T \frac{\partial L^{(t)}}{\partial \hat{\mathbf{y}}^{(t)}} \cdot \frac{\partial \hat{\mathbf{y}}^{(t)}}{\partial \mathbf{h}^{(t)}} \cdot \frac{\partial \mathbf{h}^{(t)}}{\partial \mathbf{W}_{xh}} 
+\end{align*}
+++++
+
+CAUTION: Here we have computed the loss at each time step stem:[L^{(t)}]. And the total error is the sum of errors at each step. This doesn't be the case always. In NLP applications, the outputs stem:[\hat{\mathbf{y}}^{(1)}, \dots, \hat{\mathbf{y}}^{(T)}] can be a sequence of words. We have to compare this whole sequence with the ground truth sequence (which may be of different length) to compute the loss.
+
+== Problems with RNNs ==
+In <<eq_1, Equation 1>>, the term stem:[\prod_{j=i+1}^t \frac{\partial \mathbf{h}^j}{\partial \mathbf{h}^{j-1}}] is
+
+[stem]
+++++
+\prod_{j=i+1}^t \frac{\partial \mathbf{h}^j}{\partial \mathbf{h}^{j-1}} = \prod_{j=i+1}^t \mathbf{W}_{hh} \cdot f'_h(\mathbf{x}^{(j)} \, \mathbf{W}_{xh} + \mathbf{h}^{(j-1)} \, \mathbf{W}_{hh} + \mathbf{b}_h)
+++++
+
+* If stem:[\mathbf{W}_{hh}] has the largest eigenvalue with magnitude greater than 1, the gradients grow exponentially, leading to an exploding gradient problem.
+* If stem:[\mathbf{W}_{hh}] has the largest eigenvalue with magnitude much less than 1, then gradients shrink exponentially, leading to a vanishing gradient problem. This makes parameter updates negligible in earlier layers.
++
+The vanishing gradient problem can also occur when the derivative of the activation function becomes very small. That is, when most or all elements in the vector are small stem:[\| f'_h(.)\| \approx 0], then the gradient signal diminishes during backpropagation, leading to vanishing gradients. This happens especially with sigmoid and tanh functions as their derivative is less than 1.
+
+Due to these issues, training can become unstable in simple RNNs if the time step size is set too large. That is, it becomes difficult to learn dependencies from the distant past. The vanishing gradient problem occurs more seriously in RNN than in traditional feed forward networks. To solve this problem, we can use
+
+*Gradient Clipping:*
+
+Alternatively, we can do gradient clipping, where we make the gradients to lie within a specific range. If the gradient value is less than a lower threshold, we clip it to a specified lower value. And if the gradient value is greater than an upper threshold, we clip it to a specified upper value.
+
+*Truncated BPTT:* 
+
+When the sequence is too long, the BPTT takes a long time and is more prone to vanishing and exploding gradient problems. We won't be able to keep such long sequences in memory. So we remove some of the RNN cells from the network during backpropagation. Then, we backpropagate from stem:[T] to only a few time steps back to compute the gradient.
+
+Additionally, LSTM, GRU, etc. are designed to solve the vanishing gradient problems of simple RNN.
+
+== Appendix ==
+Consider a simple feedforward network as below:
+
+image::.\images\backprop_single.png[align='center']
+
+The forward pass operation is
+
+[stem]
+++++
+\begin{align*}
+s_1^1 & = w_{11}^1 x^0_1 + b_1^1 \\
+x_1^1 & = \sigma(s_1^1) \\
+s_1^2 & = w_{11}^2 x^1_1 + b_1^2 \\
+\hat{y} & = \sigma(s_1^2) \\
+\end{align*}
+++++
+
+The parameters stem:[w_{11}^1] and stem:[w_{11}^2] are updated as:
+
+[stem]
+++++
+\begin{align*}
+w_{11}^2 & \leftarrow w_{11}^2 - \alpha \frac{\partial l}{\partial w_{11}^2 } \\
+w_{11}^2 & \leftarrow w_{11}^2 - \alpha \frac{\partial l}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial w_{11}^2 } 
+\end{align*}
+++++
+
+[stem]
+++++
+\begin{align*}
+w_{11}^1 & \leftarrow w_{11}^1 - \alpha \frac{\partial l}{\partial w_{11}^1 } \\
+w_{11}^1 & \leftarrow w_{11}^1 - \alpha \frac{\partial l}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial w_{11}^1 }
+\end{align*}
+++++
+
+If we assume both the parameters stem:[w_{11}^1=w_{11}^2  = w] are the same, then the parameter will be updated twice. Alternatively, we can combine the gradients and update the parameter once:
+
+[stem]
+++++
+\begin{align*}
+w \leftarrow w - \alpha \frac{\partial l}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial w } \hspace{1cm}
+w \leftarrow w - \alpha \frac{\partial l}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial s_1^2 } \cdot \frac{\partial s_1^2}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial w }
+\end{align*}
+++++
+
+[stem]
+++++
+w \leftarrow w - \alpha \frac{\partial l}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial s_1^2 } \left(  \frac{\partial s_1^2}{\partial w } + \frac{\partial s_1^2}{\partial x_1^1 } \cdot \frac{\partial x_1^1}{\partial s_1^1 } \cdot \frac{\partial s_1^1}{\partial w } \right)
+++++
+
+The same thing has happened in the RNN case.
+
+

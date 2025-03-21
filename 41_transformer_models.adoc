@@ -1,0 +1,148 @@
+= Transformers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+There is a sequential nature to RNNs (and its variants). Suppose the length of the input sequence is stem:[n]. RNN runs through the time steps sequentially, so it needs stem:[\mathbb{O}(n)] steps to process this sentence. We cannot process all the steps parallely as each time step is recursively dependent on the previous step output. And RNNs also need attention to deal with long-range dependencies.
+
+Since attention enables access to *any* encoder hidden state during decoding, do we need RNNs? With attention mechanism, we access the states of the encoder hidden state not as a sequence, but as a set (without respecting their temporal nature).
+
+These models are known as transformers because they transform a set of vectors in some representation space into a corresponding set of vectors, having the same dimensionality, in some new space, i.e., the dimension of the space is the same, but the subspace is different. The vectors are transformed from a subspace to another new subspace. The goal of the transformation is that the new subspace will have a richer internal representation that is better suited to solving downstream tasks.
+
+Transformers were originally introduced in the context of natural language processing, but have subsequently been found to achiev eexcellent results in many other domains.
+
+== What is Attention? ==
+The fundamental concept that underpins a transformer is attention. Transformer models are solely based on attention mechanisms, dispensing with recurrence and convolutions entirely. Let's motivate the use of attention using natural language as an example, although it has much broader applicability.
+
+Consider the following two sentences:
+
+* I swam across the river to get to the other bank.
+* I walked across the road to get cash from the bank.
+
+Here the word 'bank' has different meanings in the two sentences. However, this can be detected only by looking at the context provided by other words in the sequence. We also see that some words are more important than others in determining the interpretation of 'bank'.
+
+* In the first sentence, the words 'swam' and 'river' most strongly indicate that 'bank' refers to the side of a river.
+* In the second sentence, the word 'cash' is a strong indicator that 'bank' refers to a financial institution.
+
+We see that to determine the appropriate interpretation of 'bank', a model processing such a sentence should _attend to_, in other words rely more heavily on, specific words from the rest of the sequence. Moreover, we also see that the particular locations that should receive more attention depend on the input sequence itself: in the first sentence it is the second and fifth words that are important whereas in the second sentence it is the eighth word. Attention can use weighting factors whose values depend on the specific input data.
+
+To start with, word embeddings (Word2Vec or GloVe) are used to map words into vectors in an embedding space. This is achieved by passing the input sequence through an word embedding layer. This layer maps each word to a fixed dense vector. These embeddings capture elementary semantic properties, for example by mapping words with similar meanings to nearby locations in the embedding space. One characteristic of such embeddings is that a given word always map to the same embedding vector, regardless of context. Example: The word "bank" will have the same vector representation whether used in "river bank" or "financial bank."
+
+The outputs of the embedding layer are then passed to the encoder. The objective of encoding is to improve the word representations at subsequent encoding layers. The output of the final encoder will be a rich representation of the input sequence. The improvement in representation is done through a mechanism called *self-attention*.
+
+In this representation, a given vector is mapped to a location that depends on the other vectors in the sequence. Thus, the vector representing 'bank' in our example could map to different places in a new embedding space for the two different sentences. That is, The word "bank" in the first and second sentence will have different vector representations. For example, in the first sentence the transformed representation might put 'bank' close to 'water' in the embedding space, whereas in the second sentence the transformed representation might put it close to 'money'.
+
+Instead of assigning a fixed meaning to each word, self-attention dynamically refines word representations based on their surrounding words. This allows it to disambiguate words based on context.
+
+== Transformer Processing ==
+The input data to a transformer is a set of vectors stem:[\{\mathbf{x}_n\}] of dimensionality D, where stem:[n=1,2,\dots, N]. We refer to these data vectors as *tokens*, where a token might correspond to a word within a sentence, a patch within an image, etc. The elements stem:[x_{ni}] of the tokens are called as features.
+
+We combine the data vectors into a matrix stem:[\mathbf{X}] of dimension stem:[N \times D]. 
+
+image::.\images\trans_input.png[align='center', 150]
+
+* Each row corresponds to a token (word or subword).
+* Each column corresponds to a feature dimension of the token's embedding.
+
+For example, consider a sentence: "The cat sat on the mat." Let's assume the embedding dimension, stem:[d=4]. So our input matrix is
+
+[stem]
+++++
+\mathbf{X} = \begin{bmatrix}
+0.1 & 0.3 & 0.5 & 0.2 \\
+0.4 & 0.2 & 0.6 & 0.1 \\
+0.3 & 0.7 & 0.8 & 0.4 \\
+0.5 & 0.1 & 0.2 & 0.3 \\
+0.6 & 0.4 & 0.7 & 0.5 \\
+0.2 & 0.5 & 0.9 & 0.8 \\
+\end{bmatrix}
+++++
+
+This matrix represents one set of input tokens. We will require a data set containing many sets of tokens, i.e., many such independent passages of text.
+
+The fundamental building block of a transformer is a  function (called as encoder) that takes a data matrix as input and creates a transformed matrix stem:[\tilde{\mathbf{X}}] of the same dimensionality as the output.
+
+[stem]
+++++
+\tilde{\mathbf{X}} = \text{TransformerLayer}[\mathbf{X}]
+++++
+
+We can then apply multiple transformer layers in succession to construct deep networks capable of learning rich internal representations. Each transformer layer contains its own weights and biases. A single transformer layer comprises two stages. The first stage  implements the attention mechanism and the second stage is a feedforward network.
+
+== Attention Mechanism ==
+Suppose that we have a set of input tokens stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] in an embedding space and we want to map this to another set stem:[\mathbf{y}_1, \dots, \mathbf{y}_N] having the same number of tokens but in a new embedding space that captures a richer semantic structure.
+
+Consider a particular output vector stem:[\mathbf{y}_n]. The value of stem:[\mathbf{y}_n] should depend not just on the corresponding input vector stem:[\mathbf{x}_n], but on all the vectors stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] in the set. With attention, this dependence should be stronger for those inputs stem:[\mathbf{x}_m] that are particularly important for determining the modified representation of stem:[\mathbf{x}_n]. A simple way to achieve this is to define each output vector stem:[\mathbf{y}_n] to be a linear combination of the input vectors stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] with weighting coefficients stem:[a_{nm}]:
+
+[stem]
+++++
+\mathbf{y}_n = \sum_{m=1}^N a_{nm} \, \mathbf{x}_m
+++++
+
+where stem:[a_{nm}] are called attention weights. For example, to compute stem:[\mathbf{y}_1]:
+
+image::.\images\trans_attention_01.png[align='center', 400]
+
+The coefficients stem:[a_{nm}] should be close to zero for input tokens that have little influence on the output stem:[\mathbf{y}_n] and largest for inputs that have most influence. The weighting coefficients must satisfy the following two constraints:
+
+[stem]
+++++
+a_{nm} \geq 0  \, \, \text{  and  } \, \, \sum_{m=1}^N a_{nm} = 1
+++++
+
+Together these imply that each coefficient lies in the range stem:[0 \leq a_{nm} \leq 1]. For the special case stem:[a_{mm}= 1], it follows that stem:[a_{nm} = 0] for stem:[n \ne m], and therefore stem:[\mathbf{y}_m = \mathbf{x}_m] so that the input vector is unchanged by the transformation. In general, the output stem:[\mathbf{y}_n] is a blend of the input vectors with some inputs given more weight than others.
+
+Note that we have a different set of weight coefficients for each output vector stem:[\mathbf{y}_n]. And these coefficients stem:[a_{nm}] depend on the input data.
+
+=== Self-attention ===
+How to determine the coefficients stem:[a_{nm}]?
+
+== FFN Layer ==
+After self-attention, the second stage of the Transformer layer applies a feedforward network (FFN) to each token independently. This FFN consists of two fully connected layers and non-linearity (usually ReLU or GELU). It transforms the token representations further by mixing information within each token vector across different feature dimensions. The non-linearity in this layer adds sophistication to the model, i.e., the ability to learn complex feature interactions.
+
+This two-step process ensures that each token captures both contextual dependencies (via attention) and complex feature interactions (via FFN).
+
+Each token flows through the two layers of the encoder through its own path. All the input tokens can be updated simultaneously. So the encoder require only stem:[\mathbb{O}(1)] steps to process the whole input sequence. Unlike in RNNs, we don't have to process the tokens sequentially.
+
+image::.\images\trans_block_03.png[align='center', 500, 400]
+
+== Transformer Model ==
+It consists of an encoder-decoder and it is built on self-attention. The self-attention mechanism allows us to get all the representations (hidden states of the encoder) simultaneously.
+
+image::.\images\trans_block_01.png[align='center', 700, 400]
+
+Each word in the input sequence is transformed to a fixed-size vector. These vectors are fed into the bottom-most encoder. Other encoders receive updated representation vectors from the encoder immediately below it. The final outputs from the encoder are passed to the decoder. The decoder decodes and generates the output sequence. The encoder module has a stack of encoders. Similarly, the decoder module has a stack of decoders. Each encoder has a self-attention layer and a FFN layer. And a decoder has a self-attention layer, an encoder-decoder attention layer and a FFN layer.
+
+image::.\images\trans_block_02.png[align='center', 500, 300]
+
+In the encoder-decoder attention mechanism, we attended the encoder states from the decoder, i.e., from a decoder tentative output to all the encoder states. In self-attention mechanism, we attend within the encoder, i.e., from each state from a set of states to all other states in the same set. Hence, the name "self-attention".
+
+*Self-attention in the decoder:*
+
+Each decoder also has a self-attention layer. For each prediction stem:[y_t], the previous predicted tokens stem:[y_1, \dots, y_{t-1}] are attended to update its representation. Then, the updated representations can be used to predict the next word. And as we also need the context of the source sequence while decoding, we also have an encoder-deoder attention layer in each decoder. 
+
+== Model Architecture ==
+The data structure and the method of inputting data are the same as the existing Seq2Seq model. The encoder input is fed into the encoder. The decoder input is fed into the encoder. And make the target data come out as the output of the decoder.
+
+image::.\images\trans_architecture.png[align='center']
+
+In this example, each subset consists of five sequential data points.
+
+*Modifying the architecture for time series data:*
+
+* Natural language data may have padding tokens added to keep the length of the sequence constant. In such cases, we need a padding mask operation. But the time series data has no padding because the length is constant.
+
+* An embedding layer for the time series is added to the input layer. In natural language processing, word embedding layers are used, but since we are dealing with time series data, we use a simple linear feedforward layer for the embedding layer.
++
+The outputs of this layer are vector representations of the time series data. The size of the vector is a hyperparameter called d_model.
+
+* Since time series prediction is a regression problem, we do not use softmax in the output layer. Therefore, the outputs are real values, not probabilities.
+
+
+
+
+
+
+

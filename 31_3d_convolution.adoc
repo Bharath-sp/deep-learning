@@ -1,0 +1,64 @@
+= 3D Convolution =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+Let's explore CNN models with 3D convolutional layers. A 3D convolutional layer is typically used for 3D image slices, such as medical imaging, or for videos, such as action recognition data. here the filters move in three directions.
+
+== Structure of Input ==
+The input is mainly 3D RGB images. The input data to a 3D convolutional layer has five-dimensional structure: stem:[(\text{batch_size},  \text{depth}, \text{height}, \text{width}, \text{channels})] or stem:[(\text{batch_size}, \text{channels}, \text{depth}, \text{height}, \text{width})].
+
+Padding can be added to all the six sides of the input. An example of 3D MNIST image with the target stem:[y] of 3:
+
+image::.\images\mnist_3d.png[align='center', 200, 200]
+
+== 3D Convolutional Layer ==
+The filters in the 3D convolutional layer also have a 5-dimensional structure: stem:[(k_1, k_2, k_3, c, r)]. Each filter will have a 4-dimensional structure stem:[(k_1, k_2, k_3, c)]. Each filter consists of stem:[c] channels, each of size stem:[(k_1, k_2, k_3)]. The channel dimension stem:[c] of the filter should match the channel dimension of the input data.
+
+NOTE: stem:[k_1, k_2, k_3] and stem:[r] are hyperparameters. We generally use odd values for stem:[k_1, k_2, k_3].
+
+The input here is a single 4D RGB image with 3 channels, stem:[(\text{None},  32, 32, 32, 3)]. A single filter of size stem:[(k_1, k_2, k_3, 3)].
+
+image::.\images\conv_3d_01.png[align='center']
+
+The final feature map (the output of the 3D convolutional layer) has a five-dimensional structure stem:[(\text{batch_size}, d_{\text{out}}, h_{\text{out}}, w_{\text{out}}, r)]
+
+where
+
+[stem]
+++++
+\begin{align*}
+d_{\text{out}} & = \left \lfloor \frac{d_{\text{in}}+2p_1 - l_1 \times (k_1-1) -1 }{s_1}+1 \right \rfloor \\
+h_{\text{out}} & = \left \lfloor \frac{h_{\text{in}}+2p_2 - l_2 \times (k_2-1) -1 }{s_2}+1 \right \rfloor \\
+w_{\text{out}} & = \left \lfloor \frac{w_{\text{in}}+2p_3 - l_3 \times (k_3-1) -1 }{s_3}+1 \right \rfloor \\
+\end{align*}
+++++
+
+This feature map is fed into the next 3D convolutional layer or 3D pooling layer.
+
+== 3D Pooling Layer ==
+A pooling layer downsamples the output feature maps of the convolutional layer to produce new feature maps of smaller size.
+
+CAUTION: Contrary to convolution, pooling applies channel wise, i.e., applies pooling on each of the channels separately.
+
+* Suppose the size of the pooling filter is stem:[(k_1, k_2, k_3)]. In the 3D global max pooling layer, the size of the pooling filter is equal to the size of the feature map stem:[(k_1, k_2, k_3) = (d_{\text{out}}, h_{\text{out}}, w_{\text{out}})].
+* The default value for stride in pooling layers is the kernel (filter) size, i.e., stem:[(s_1, s_2, s_3) = (k_1, k_2, k_3)]. In such case, we slide through the feature map without overlapping.
+
+The output of the 3D pooling layer has a five-dimensional structure: stem:[(\text{batch_size}, d_{\text{out}}, h_{\text{out}}, w_{\text{out}}, r)]
+
+where
+
+[stem]
+++++
+\begin{align*}
+d_{\text{out}} & = \left \lfloor \frac{d_{\text{in}}+2p_1 - l_1 \times (k_1-1) -1 }{s_1}+1 \right \rfloor \\
+h_{\text{out}} & = \left \lfloor \frac{h_{\text{in}}+2p_2 - l_2 \times (k_2-1) -1 }{s_2}+1 \right \rfloor \\
+w_{\text{out}} & = \left \lfloor \frac{w_{\text{in}}+2p_3 - l_3 \times (k_3-1) -1 }{s_3}+1 \right \rfloor \\
+\end{align*}
+++++
+
+NOTE: Here the padding cannot be set to string as with the convolutional layer.
+
+Note that the pooling layers don't have any trainable parameters. The feature maps are reshaped into a two-dimensional structure and fed into a feed-forward network.

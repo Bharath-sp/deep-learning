@@ -1,0 +1,15 @@
+= CNN Architectures =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== LeNet Architecture ==
+LeNet is a classical CNN architecture in 1990s. It is used for handwritten digit classification. It has the following configuration:
+
+image::.\images\lenet_01.png[align='center', 800, 600]
+
+The non-linearity in the output layer is the softmax function.
+
+NOTE: The LeNet architecture is simple. Recent CNN architectures are far more sophisticated and complex.
+

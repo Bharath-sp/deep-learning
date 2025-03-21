@@ -1,0 +1,102 @@
+= 2D Convolution =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+Let's explore CNN models with 2D convolutional layers. A 2D convolutional layer is typically used for RGB images, where the filters move in two directions.
+
+== Structure of Input ==
+The input is mainly 2D RGB images. The input data to a 2D convolutional layer has four-dimensional structure: stem:[(\text{batch_size}, n, m, c)] or stem:[(\text{batch_size}, c, n, m)].
+
+* The first dimension is the batch size of the input data.
+* The second dimension is the number of rows of an RGB image, stem:[n].
+* The third dimension is the number of columns of an RGB image, stem:[m].
+* The last dimension is the number of color channels, stem:[c]. For an RGB image, stem:[c=3]: Red, green, and blue. In other applications, stem:[c] can be greater or less than 3.
+
+Padding can be added on the top, bottom, left, and right.
+
+== 2D Convolutional Layer ==
+The filters in the 2D convolutional layer also have a 4-dimensional structure: stem:[(k_1, k_2, c, r)]. Each filter will have a 3-dimensional structure stem:[(k_1, k_2, c)]. Each filter consists of stem:[c] channels, each of size stem:[(k_1, k_2)]. The channel dimension stem:[c] of the filter should match the channel dimension of the input data.
+
+NOTE: stem:[k_1, k_2] and stem:[r] are hyperparameters. We generally use odd values for stem:[k_1, k_2].
+
+The important parameters of a 2D Convolutional layer are:
+
+. `filter`: The number of filters stem:[r].
+. `kernel_size`: int or tuple/list of 2 integer, specifying the size of the convolution window. stem:[(k_1, k_2)].
+. `strides`:  int or tuple/list of 2 integer, specifying the stride length of the convolution. Default stem:[(s_n, s_m) = (1,1)].
+. `padding`: int or tuple/list of 2 integer. We can also specify a string, either `valid` or `same` (case-insensitive). "valid" means no padding. "same" results in padding evenly to the left/right or up/down of the input. When padding="same", the strides should be set to 1, then the output has the same (height, width) as the input. Default padding stem:[(p_n, p_m) = (0,0)].
++
+*Padding Behaviour:*
++
+* If there is no padding stem:[p_n=p_m=0], then it is called a `valid` convolution. The convolution is only applied when the entire window fits within the input. If the result is fractional, the last partial windows (the right-most columns or bottom-most rows) are ignored.
+* In some cases we want the feature map to have the same dimensions as the input image. This can be achieved by padding around the border of the input image. The strides should be set to 1.
++
+[stem]
+++++
+\begin{align*}
+n+2p_n-k_1 +1 & = n \\
+2p_n-k_1 + 1 & = 0 \implies p_n =  \frac{k_1-1}{2} 
+\end{align*}
+++++
++
+Similarly, we can find the value for stem:[p_m]. In such cases, the output of the convolutional layer will be stem:[(\text{batch_size}, n, m, r)] - the same spatial dimension as the input.
++
+When the value of stem:[p_n, p_m] are chosen such that the output has the same size as the input, this is called as `same` convolution. However, this mode doesn't support any stride values other than 1.
++
+NOTE: If the number of columns to be padded is odd, the extra column will be added to the right. If the number of rows to be padded is odd, the extra row will be added to the bottom.
+
+. `dilation_rate`: int or tuple/list of 2 integers, specifying the dilation rate to use for dilated convolution. Default stem:[(1,1)].
+. `activation`: Activation function. If None, no activation is applied.
+
+We apply the filter to an RGB image and compute the cross-correlation or convolution between the input data and the filters. Each filter produces a 3D feature map. We sum this along the channel matrix to get a 2D feature map. And add a bias to this result. Combining these feature maps produces the final feature map, which is the output of the 2D convolutional layer.
+
+Therefore, the final feature map (the output of the 2D convolutional layer) has a four-dimensional structure:
+
+[stem]
+++++
+(\text{batch_size}, f_1, f_2, r) = \left( \text{batch_size}, \left \lfloor \frac{n+2p_n - l_1 \times (k_1-1) -1 }{s_n}+1 \right \rfloor, \left \lfloor \frac{m+2p_m- l_2 \times (k_2-1)-1}{s_m}+1 \right \rfloor, r \right)
+++++
+
+where 
+
+* stem:[p_n , p_m] are padding size per side, i.e., stem:[p_n = p_{\text{left}} = p_{\text{right}}]. And stem:[p_m = p_{\text{top}} = p_{\text{bottom}}]. In the case of asymmetric paddding, use stem:[p_{\text{top}}, p_{\text{bottom}}, p_{\text{left}}, p_{\text{right}}] separately.
+* stem:[s_n] is the stride value along the rows and stem:[s_m] is the stride value along the columns. The default stride value is 1, stem:[s_n = s_m = 1].
+* stem:[(l_1, l_2)] is the dilation rate, and 
+* stem:[r] is the number of filters.
+
+=== Parameters Sharing ===
+The number of trainable parameters in this layer is stem:[r \times k_1 \times k_2 \times c + r].
+
+In the above example, the input data has a total of stem:[6 \times 5 \times 3 = 120] units. And the output of the convolutional layer has a total of 27 units (with stem:[r=3]).
+
+If we were to build a MLP layer, the total number of parameters would be stem:[120 \times 27 = 3,240] parameters. In the CNN design, we have a total of only 84 parameters. Since we convolve with the same parameters through the whole input, the parameters of the kernels (or filters) are shared in the computation of the output feature map.
+
+image::.\images\conv_2d_01.png[align='center']
+
+For a single RGB image, the final feature map has three-dimensional structure: stem:[f_1, f_2, r]. For multiple RGB images, it is stem:[(\text{batch_size}, f_1, f_2, r)]. The resulting stem:[r] can be greater than 3. This feature map is fed into the next 2D convolutional layer or 2D pooling layer.
+
+== 2D Pooling Layer ==
+A pooling layer downsamples the output feature maps of the convolutional layer to produce new feature maps of smaller size. Here is a simple CNN model using a 2D max pooling layer or a 2D global max pooling layer. We can also use a 2D average pooling layer.
+
+CAUTION: Contrary to convolution, pooling applies channel wise, i.e., applies pooling on each of the channels separately.
+
+image::.\images\conv_2d_02.png[align='center']
+
+* Suppose the size of the pooling filter is stem:[(k_1, k_2)]. In the 2D global max pooling layer, the size of the pooling filter is equal to the size of the feature map stem:[(k_1, k_2) = (f_1, f_2)].
+* The default value for stride in pooling layers is the kernel (filter) size, i.e., stem:[(s_n, s_m) = (k_1, k_2)]. In such case, we slide through the feature map without overlapping.
+
+Then the output of the 2D pooling layer has a four-dimensional structure:
+
+[stem]
+++++
+(\text{batch_size}, d_1, d_2, r) = \left( \text{batch_size}, \left \lfloor \frac{n+2p_n - l_1 \times (k_1-1) -1 }{s_n}+1 \right \rfloor, \left \lfloor \frac{m+2p_m- l_2 \times (k_2-1)-1}{s_m}+1 \right \rfloor, r \right)
+++++
+
+NOTE: Here the padding cannot be set to string as with the convolutional layer.
+
+Note that the pooling layers don't have any trainable parameters. Pooling also provides weak invariance. With max pooling, the result will be the maximum value of a part of an image regardless of which pixel in that part is maximum. So it doesn't matter if an object of interest is slightly rotated, flipped, etc., the pooling operation captures it.
+
+The feature maps are reshaped into a two-dimensional structure and fed into a feed-forward network.

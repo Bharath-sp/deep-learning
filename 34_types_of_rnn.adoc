@@ -1,0 +1,125 @@
+= Types of RNN =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Types of RNNs ==
+RNNs can be structured as: Many-to-one or Many-to-Many.
+
+=== Many-to-One ===
+When we feed multiple data points to an RNN, it outputs one data point. The dataset for many-to-one structure is as below.
+
+image::.\images\rnn_many_one.png[align='center']
+
+Since there are 5 sequence data points in a subset, the number of recurrent time steps in the RNN is also 5, i.e., stem:[T=5]. The operations within a many-to-one RNN can be described by the following equations: (where stem:[i] is the subset number)
+
+[stem]
+++++
+\begin{align*}
+\mathbf{z}^{(i,1)} & =  \mathbf{x}^{(i,1)} \, \mathbf{W}_{xh} + \mathbf{h}^{(i,0)} \, \mathbf{W}_{hh} + \mathbf{b}_h \\
+\mathbf{h}^{(i,1)} & = f_h(\mathbf{z}^{(i,1)}) \\
+& \vdots \\
+\mathbf{z}^{(i,t)} & =  \mathbf{x}^{(i,t)} \, \mathbf{W}_{xh} + \mathbf{h}^{(i,t-1)} \, \mathbf{W}_{hh} + \mathbf{b}_h \\
+\mathbf{h}^{(i,t)} & = f_h(\mathbf{z}^{(i,t)}) \\
+& \vdots \\
+\mathbf{z}^{(i,T)} & =  \mathbf{x}^{(i,T)} \, \mathbf{W}_{xh} + \mathbf{h}^{(i,T-1)} \, \mathbf{W}_{hh} + \mathbf{b}_h \\
+\mathbf{h}^{(i,T)} & = f_h(\mathbf{z}^{(i,T)}) \\
+\\
+\hat{\mathbf{y}}^{(i)} & = f_o(\mathbf{h}^{(i,T)} \mathbf{W}_{ho} + \mathbf{b}_o)
+\end{align*}
+++++
+
+with stem:[\mathbf{h}^{(i,0)} = \mathbf{0}]. And stem:[\hat{\mathbf{y}}^{(i)}] denotes the prediction for the stem:[i]th subset. We then compute the loss stem:[L] using the target value stem:[\mathbf{y}] and the predicted value stem:[\hat{\mathbf{y}}]. As the gradient of the loss stem:[L] is backpropagated, the parameters stem:[\mathbf{W}_{xh}, \mathbf{W}_{hh}, \mathbf{W}_{ho}, \mathbf{b}_h, \mathbf{b}_o] are updated. At each time step backwards, the parameters are updated, i.e., stem:[\mathbf{W}_{ho}] is updated once and stem:[\mathbf{W}_{xh}, \mathbf{W}_{hh}] are updated 5 times during backpropagation.
+
+TIP: They are not actually updated 5 times, but only once after the gradients are combined.
+
+The process is repeated until the first time step and the parameters are updated at the first time step.
+
+*Processing in Python:*
+
+Say we have a dataset with 1000 samples and two features. Suppose we are building an RNN model with 50 neurons in the recurrent layer and two neurons in the output layer. And time step stem:[T=20].
+
+We reshape the input into a 3D structure: stem:[(\text{batch_size}, \text{no. of time steps}, \text{no. of features})]: stem:[(980,20,2)]. Then, in the model instance, we specify the input size stem:[\mathbf{X}] as stem:[(\text{None}, 20, 2)].
+
+* stem:[\mathbf{x}^t] is a stem:[(\text{None}, 2)] matrix.
+* stem:[\mathbf{W}_{xh}] is a stem:[2 \times 50] matrix.
+* stem:[ \mathbf{W}_{hh}] is a stem:[50 \times 50] matrix.
+* stem:[\mathbf{W}_{ho}] is a stem:[50 \times 2] matrix.
+* stem:[\mathbf{h}^t] is a stem:[(\text{None}, 50)] matrix.
+* stem:[\mathbf{b}_h] is a stem:[(1 \times 50)] vector.
+* stem:[\hat{\mathbf{y}}] is a stem:[(\text{None}, 2)] vector.
+
+Suppose we set the batch size to 50, then the processing happens as below. At each time step, all the batches are processed at once. For example, at stem:[t=1], the first input in all the batches are processed at once. So we leave the superscript to denote the subset and keep only the  superscript to denote the time step. Here stem:[\mathbf{x}^1] represents the first data point of all the subsets, and stem:[\mathbf{x}^{20}] represents the 20th data point of all the subsets.
+
+[stem]
+++++
+\begin{align*}
+\mathbf{z}^1 & =  \mathbf{x}^1 \mathbf{W}_{xh} + \mathbf{h}^0 \, \mathbf{W}_{hh}  + \mathbf{b}_h \\
+(50,50) & = (50,2) \times (2,50) + (50,50) * (50,50) + (1,50) \\
+\\
+\mathbf{h}^1 & = f_h(\mathbf{z}^1) \\
+(50,50) & = (50,50) \\
+\\
+& \vdots \\
+\\
+\mathbf{z}^{20} & =  \mathbf{x}^{20} \mathbf{W}_{xh} + \mathbf{h}^{19} \, \mathbf{W}_{hh}  + \mathbf{b}_h \\
+(50,50) & = (50,2) \times (2,50) + (50,50) * (50,50) + (1,50) \\
+\\
+\mathbf{h}^{20} & = f_h(\mathbf{z}^{20}) \\
+(50,50) & = (50,50) \\
+\\
+\hat{\mathbf{y}} & = f_o(\mathbf{h}^{20} \, \mathbf{W}_{ho} + \mathbf{b}_o) \\
+(50,2) & = (50,50) \times (50,2) + (1,2)
+
+\end{align*}
+++++
+
+Note that a row in stem:[\hat{\mathbf{y}}] is the prediction value for a subset and each column represents a time series.
+
+=== Many-to-Many ===
+When we feed multiple data points to an RNN, it outputs multiple data points. So the target also has a 3-dimensional structure stem:[(\text{batch_size}, \text{no. of time steps}, \text{no. of features})]. Thus, the target is also sequence data. If data point 1 is input at time step 1, data point 2 will be output at that time step.
+
+The dataset for many-to-one structure is as below.
+
+image::.\images\rnn_many_many.png[align='center']
+
+The operations within a many-to-many RNN can be described by the following equations: (where stem:[i] is the subset number)
+
+[stem]
+++++
+\begin{align*}
+\mathbf{z}^{(i,1)} & =  \mathbf{x}^{(i,1)} \, \mathbf{W}_{xh}  + \mathbf{h}^{(i,0)} \, \mathbf{W}_{hh}  + \mathbf{b}_h \\
+\mathbf{h}^{(i,1)} & = f_h(\mathbf{z}^{(i,1)}) \\
+\hat{\mathbf{y}}^{(i,1)} & = f_o(\mathbf{h}^{(i,1)} \, \mathbf{W}_{ho} + \mathbf{b}_o) \\
+& \vdots \\
+\mathbf{z}^{(i,t)} & =  \mathbf{x}^{(i,t)} \, \mathbf{W}_{xh}  + \mathbf{h}^{(i,t-1)} \, \mathbf{W}_{hh}  + \mathbf{b}_h \\
+\mathbf{h}^{(i,t)} & = f_h(\mathbf{z}^{(i,t)}) \\
+\hat{\mathbf{y}}^{(i,t)} & = f_o(\mathbf{h}^{(i,t)} \, \mathbf{W}_{ho} + \mathbf{b}_o) \\
+& \vdots \\
+\mathbf{z}^{(i,T)} & =  \mathbf{x}^{(i,T)} \, \mathbf{W}_{xh}  + \mathbf{h}^{(i,T-1)} \, \mathbf{W}_{hh}  + \mathbf{b}_h \\
+\mathbf{h}^{(i,T)} & = f_h(\mathbf{z}^{(i,T)}) \\
+\hat{\mathbf{y}}^{(i,T)} & = f_o(\mathbf{h}^{(i,T)} \, \mathbf{W}_{ho} + \mathbf{b}_o)
+\end{align*}
+++++
+
+This is identical to the many-to-one structure, but stem:[\hat{\mathbf{y}}] is output at each time step. When the first data point of the subset is input to the first time step, the predicted value of the first data point is output through the recurrent layer and the output layer. And the loss stem:[L^{(1)}] of the first step is computed. Then, the gradients of the loss stem:[L^{(1)}] are backpropagated to the lower layers to update stem:[\mathbf{W}_{xh}, \mathbf{W}_{hh}, \mathbf{W}_{ho}, \mathbf{b}_h, \mathbf{b}_o].
+
+At the second time step, the loss stem:[L^{(2)}] is computed, and the gradients of stem:[L^{(2)}] are propagated to the lower layers, updating stem:[\mathbf{W}_{xh}, \mathbf{W}_{hh}, \mathbf{W}_{ho}, \mathbf{b}_h, \mathbf{b}_o] again.
+
+TIP: They are not actually updated multiple times, but only once after the gradients are combined.
+
+The gradients of stem:[L^{(2)}] with respect to stem:[\mathbf{W}_{hh}] are also backpropagated to the previous time step. The process is repeated until the first time step and the parameters are updated at the first time step. For time series forecasting, the outputs of the final time step can be used as the predicted values.
+
+== Multi-layered RNN ==
+The RNN that we looked at above is a one-recurrent layer architecture. It is possible to stack multiple RNN layers. Here for the first RNN layer, the input is the actual input. For the subsequent RNN layers, the inputs are the hidden states.
+
+image::.\images\multi_rnn.png[align='center', 300, 300]
+
+Here the superscript is the layer and the subscript is the timestep.
+
+CAUTION: We don't use many layers in RNN because it increases the complexity. In practice, we usually go with only 2 or 3 layers for multi-layered RNN.
+
+
+
+

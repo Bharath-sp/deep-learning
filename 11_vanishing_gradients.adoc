@@ -53,7 +53,7 @@ Similarly, we can also find the gradient with respect to the parameters
 \end{align*}
 ++++
 
-Then we update the paramaters using the gradient update equation:
+Then we update the parameters using the gradient update equation:
 
 [stem]
 ++++
@@ -88,7 +88,7 @@ w_{11}^1 & \leftarrow w_{11}^1 - \alpha (\hat{y}-y)\cdot \frac{\partial \hat{y}}
 
 This expression has the same form as the expression that updates stem:[w_{11}^2]. The stem:[e_2] is the error of the output layer, it can be inferred that stem:[e_1] is the error of the hidden layer. In other words, the error in the output layer is backpropagated and the error stem:[e_1] is assigned to the hidden neuron. The error of a lower layer cannot be measured directly because the desired output of the lower layer is unknown. However, if this value is used as a proxy for the error, stem:[w_1] can be updated using gradient descent.
 
-== Vanishing Gradients ==
+== Exploding and Vanishing Gradients ==
 In the update equation of stem:[w_{11}^2], the derivative of the activation function in the output layer stem:[\sigma'(s_1^2)] is multiplied in the gradient term. And when updating stem:[w_{11}^1], the derivative of the activation function in the hidden layer stem:[\sigma'(s_1^1)] is additionally multiplied.
 
 If there are 10 hidden layers, the derivatives of the activation functions are multiplied 10 times.
@@ -100,6 +100,14 @@ In lower hidden layers, the gradient will become very small. Thus the parameters
 * If the derivative of the activation function is greater than 1, the gradients increases exponentially as it goes down the layers. This is called the *exploding gradient* problem.
 
 The maximum value of the derivative of sigmoid is 0.25. The maximum value of the derivative of tanh is at most 1. The vanishing gradient problem occurs with these activation functions.
+
+[IMPORTANT]
+====
+How can we detect these two problems:
+
+* When the gradients are exploding, the parameter values and loss become very large. They go to stem:[\infty].
+* When the gradients are vanishing, the parameter values and loss become stagnant. No learning happens.
+====
 
 To alleviate this problem, ReLU is widely used in hidden layers. ReLU is a non-linear function that combines two linear functions. The gradient of ReLU is either 0 or 1. If it is 1, the gradient propagates well to the lower layers. If it is 0, the gradient will not propagate. However, with ReLU, the output value of some neurons in the hidden layer will become 0, causing some of the dropout and regularization effects.
 

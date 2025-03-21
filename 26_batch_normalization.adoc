@@ -1,0 +1,20 @@
+= Batch Normalization =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+The batch normalization is not a regularization technique, but it is a method to speed up the training process.
+
+In the neural networks, we normalize our inputs stem:[\mathbf{x}^0] to have mean 0 and variance 1 and feed them to the first layer.
+
+But the inputs to the second layer may not have the same mean and variance, i.e., it may not be normalized. And as the weight matrix stem:[\mathbf{W}^1] gets updated, the distribution of the outputs of the hidden layer keeps changing. The distribution of the internal layers' input keeps changing. This is called internal covariate shift (ICS). ICS is undesirable because the layers need to adapt to the new distribution of the inputs. This slows down the learning.
+
+Batch normalization (BN) is a normalization method which applies normalization at all the intermediate layers of the neural networks. This handles ICS and makes the output of each neuron to be Gaussian distributed. BN helps us set large learning rate and achieve fast learning with less number of epochs.
+
+Batch-norm statistics are computed over the training data across the iterations and they are used during the prediction stage. At the end of training, we save the trained model along with a set of batch-norm statistics for every batch-norm layer.
+
+
+
+

@@ -4,8 +4,223 @@
 :eqnums:
 :toc:
 
-== Weight Initialization ==
-What if all the parameters are initialized to zero? Or, a different constant?
+== Problem ==
+Properly setting *the number and initial values* of parameters is a critical step in training a neural network.
+
+* The number of parameters stem:[w] is determined by the width and depth of a model. Models with small number of parameters may have large errors and underfitting, while models with large number of parameters may have small errors but overfitting.
+
+* The initial values of parameters also affect the performance of models. Depending on the initial values, vanishing or exploding gradients problems may occur, and local minimum problems may also increase. The Weights are typically randomly drawn from a normal distribution stem:[\mathcal{N}(0,\sigma^2)], or from a uniform distribution.
+
+In the network, say we have hyperbolic tangent activation functions. As we progress through the layers, the variance of the outputs from the activation function keeps decreasing, i.e., the dynamic range of the activations at later layers goes on shrinking, and the activations tend to zero at deeper layers.
+
+image::.\images\weights_initialization_00.png[align='center', 800, 300]
+
+The outputs stem:[\mathbf{x}^l] from most of the neurons at deeper layers will be 0. This affects the backward gradient as well, resulting in zero gradient and the learning will be stopped.
+
+The variance of the weights of a hidden layer affects the variance of the outputs of the layer. So our objective is to find the optimal variance for the weight distribution, and set the weights effectively to overcome this problem. If we were to sample from the normal distribution, stem:[\mathcal{N}(0,\sigma^2)], we need to find the optimal stem:[\sigma^2], and if we were to sample from the uniform distribution, we need to find the optimal range.
+
+== Xavier Glorot Initializer ==
+We would like the variance of the activations to remain constant across layers so that the input signals and gradients can flow smoothly through each layer during the forward and backward propagation. This helps prevent the gradient from vanishing or exploding. The objective is to find the weight matrix distribution by determining stem:[\text{Var}(\mathbf{W})] given two constraints:
+
+. For all stem:[l: \text{Var}(\mathbf{x}^{l-1}) = \text{Var}(\mathbf{x}^l)], i.e. the forward signal is flowing with constant variance.
+. For all stem:[l: \frac{\partial L}{\partial \mathbf{x}^{l-1}} =\frac{\partial L}{\partial \mathbf{x}^l}], i.e. the backward signal is flowing with constant variance.
+
+The above two equations help us guarantee that, at initialization, the variance of both layers' outputs and gradients is constant throughout the network.
+
+=== Assumptions ===
+We make the following assumptions just to simplify the mathematical derivation. These may not hold in practice, but the formula that we derive works in most of the practical scenarios.
+
+*Assumption 1:*
+
+We assume that the activation function used in the layer is odd, with unit derivative at stem:[0], i.e., stem:[f'(0)=1]. With this assumption, we can approximate stem:[f(x) \approx x] around zero. The first-order approximation of the function around stem:[x=0] is given by the Taylor series as follows
+
+[stem]
+++++
+f(x) = f(0) + f'(0) (x-0)
+++++
+
+stem:[f'(0)=1] and for odd functions stem:[f(0)=0]. Thus, we can approximate stem:[f(x) \approx x] for the values of stem:[x] near 0. This assumption holds good only for sigmoid, tanh, etc.
+
+*Assumption 2:*
+
+We assume that all inputs stem:[x], weights, biases, pre-activations, activations and gradients are iid at initialization, i.e. independent, identically distributed.
+
+*Assumption 3:*
+
+We assume that inputs are normalized with zero mean, stem:[\mathbb{E}[\mathbf{x}^0_j\] = 0]. The weights and biases are initialized using a distribution centered at zero, meaning stem:[\mathbb{E}[w^l_{ij}\]=0] and stem:[\mathbb{E}[b^l_j\]=0] at all layers stem:[l]. From this and the linearity of stem:[f] at 0 (from our assumption 1, stem:[f(0)=0]), we see that
+
+[stem]
+++++
+\begin{align*}
+\mathbf{s}^1 & = \mathbf{W}^1 \mathbf{x}^0 + \mathbf{b}^1 \\
+\mathbb{E}[\mathbf{s}^1] &= \mathbb{E}[\mathbf{W}^1 \mathbf{x}^0 + \mathbf{b}^1] = \mathbb{E}[\mathbf{W}^1] \,\, \mathbb{E}[\mathbf{x}^0] +  \mathbb{E}[\mathbf{b}^1] = \mathbf{0}
+\end{align*}
+++++
+
+And since stem:[f(0)=0] and for small stem:[s^1_j], we can approximate stem:[f(s^1_j) \approx s^1_j]. Then the expectation of the activation becomes:
+
+[stem]
+++++
+\begin{align*}
+\mathbf{x}^1 & = f(\mathbf{s}^1) \approx \mathbf{s}^1  \\
+\mathbb{E}[\mathbf{x}^1] & = \mathbb{E}[f(\mathbf{s}^1)] \approx \mathbb{E}[\mathbf{s}^1] = \mathbf{0}
+\end{align*}
+++++
+
+This holds for all layer stem:[l], thus
+
+[stem]
+++++
+\mathbb{E}[\mathbf{x}^0] = \mathbb{E}[\mathbf{W}^l] = \mathbb{E}[\mathbf{b}^l] = \mathbb{E}[\mathbf{x}^l] = \mathbb{E}[\mathbf{s}^l] = \mathbf{0}
+++++
+
+
+=== Using Normal Distribution ===
+
+*Forward Direction:*
+
+Let's find the optimal variance of the initial weight distribution in the forward direction. Consider a sub-network consisting of a lower layer and an upper layer. The are stem:[D] neurons in the lower layer and stem:[J] neurons in the upper layer.
+
+image::.\images\weights_initialization_01.png[align='center', 500, 300]
+
+Objective:
+
+For all stem:[l: \text{Var}(\mathbf{x}^{l-1}) = \text{Var}(\mathbf{x}^l)]. We want the variance of the activations to remain constant across layers. Let's find the variance of stem:[w_{ij}] that achieves this goal.
+
+We want to find the variance of stem:[\mathbf{x}^l], where stem:[\mathbf{x}^l \text{ is } {J \times 1}]. From our assumption
+
+[stem]
+++++
+\text{Var}(\mathbf{x}^l) = \text{Var}(f(\mathbf{s}^l)) \approx \text{Var}(\mathbf{s}^l)
+++++
+
+The variance of the pre-activation is given by
+
+[stem]
+++++
+\begin{align*}
+\mathbf{s}^l & = \mathbf{W}^l \mathbf{x}^{l-1} + \mathbf{b}^l \\
+\\
+& = 
+\begin{bmatrix}
+w^l_{11} & \dots & w^l_{1D}  \\
+\vdots  & \dots & \vdots\\
+w^l_{J1} & \dots & w^l_{JD} \\
+\end{bmatrix} \begin{bmatrix} x^{l-1}_1 \\ \vdots \\ x^{l-1}_D \end{bmatrix} + \begin{bmatrix} b^l_1 \\ \vdots \\ b^l_J \end{bmatrix}
+= \begin{bmatrix}
+\sum_{j=1}^D w^l_{1j} x^{l-1}_j\,  + b^l_1 \\
+\vdots\\
+\sum_{j=1}^D w^l_{Jj} x^{l-1}_j\,  + b^l_J \\
+\end{bmatrix} = \begin{bmatrix}
+\mathbf{s}_1^l \\
+\vdots\\
+\mathbf{s}_J^l \\
+\end{bmatrix}
+\end{align*}
+++++
+
+Assumming all the data points stem:[x] and weights stem:[w] are i.i.d
+
+[stem]
+++++
+\begin{align*}
+\text{Var}(\mathbf{s}_1^l) & = \text{Var} \left( \sum_{j=1}^D w^l_{1j} x^{l-1}_j\,  + b^l_1 \right) \\
+& = \text{Var} \left( \sum_{j=1}^D w^l_{1j} x^{l-1}_j \right) && b_1^l  \text{ is a constant}\\
+& =  \sum_{j=1}^D \text{Var} \left(w^l_{1j} x^{l-1}_j \right) && \text{as } x \text{ and } w \text{ are i.i.d}\\
+& = D \cdot \text{Var} \left(w^l_{11} x^{l-1}_1 \right) \\
+\\
+& = D \cdot \text{Var}(w^l_{11}) \text{Var}(x^{l-1}_1 ) && \text{as } \mathbb{E}[x] = \mathbb{E}[w] = 0\\
+\\
+& = D \cdot \text{Var}(\mathbf{W}^l) \text{Var}(\mathbf{x}^{l-1})
+\end{align*}
+++++
+
+As all the elements in stem:[\mathbf{W}^l] and stem:[\mathbf{x}^{l-1}] are i.i.d, the variance of a single element is equal to the variance of the matrix, i.e., stem:[\text{Var}(w^l_{11}) = \text{Var}(\mathbf{W}^l)] and stem:[ \text{Var}(x^{l-1}_1 ) = \text{Var}(\mathbf{x}^{l-1})]. This notation is not referring to the variance of the entire matrix, but rather the variance of any single entry, assuming all elements are i.i.d.
+
+As stem:[\mathbf{s}_1^l, \dots, \mathbf{s}_J^l] are also i.i.d, this results in stem:[\text{Var}(\mathbf{s}^l) = D \cdot \text{Var}(\textbf{W}^l) \text{Var}(\mathbf{x}^{l-1})].
+
+This gives stem:[\text{Var}(\mathbf{x}^l) \approx D \cdot \text{Var}(\textbf{W}^l) \text{Var}(\mathbf{x}^{l-1})].
+
+Therefore, for stem:[\text{Var}(\mathbf{x}^l)] to be equal to stem:[\text{Var}(\mathbf{x}^{l-1})], we must have
+
+[stem]
+++++
+\text{Var}(\textbf{W}^l) = \frac{1}{D}
+++++
+
+That is, the weights of the stem:[l]th layer should be initialized from stem:[\mathcal{N}(0, \frac{1}{D})], where stem:[D] is the number of neurons in the stem:[(l-1)]th layer. For example, if the number of neurons in the lower layer is 100, the initial weights of the upper layer are set by drawing them from a normal distribution with mean 0 and variance stem:[0.01].
+
+*Backward Direction:*
+
+During backpropagation, we would like the variance of the gradients of loss with respect to the output stem:[s] to remain constant across layers. Solving this the similar way, we find that the optimal variance of the initial weight distribution in the backward direction
+
+[stem]
+++++
+\text{Var}(\textbf{W}^l) = \frac{1}{J}
+++++
+
+where stem:[J] is the number of neurons in the upper layer.
+
+We have found two optimal variances for stem:[\textbf{W}]. Let's use the harmonic mean of these two to get
+
+[stem]
+++++
+\text{Var}(\textbf{W}^l) = \frac{2}{D+J}
+++++
+
+=== Using Uniform Distribution ===
+Now that we know the optimal variance for the normal distribution, we can also find the range for the uniform distribution. Let's consider the continuous uniform distribution, stem:[U \sim (-a,a)]. The variance of this distribution is stem:[\frac{1}{3}a^2].
+
+We already know the variance that satifies our objectives, and the variance of the uniform distribution must also equal to that variance.
+
+[stem]
+++++
+\frac{1}{3}a^2 = \frac{2}{D+J} \implies a = \sqrt{\frac{6}{D+J}}
+++++
+
+Therefore, the optimal range to sample the weights for initialization from the uniform distribution is stem:[U \left(-\sqrt{\frac{6}{D+J}}, \sqrt{\frac{6}{D+J}} \right)].
+
+In Xavier Glorot's method, when the activation function is sigmoid or hyperbolic tangent, it is assumed to be linear near the origin (assumption 1). However, this assumption doesn't hold when using activation functions such as ReLU. Because ReLU is a non-linear function near the origin. 
+
+== Kaiming He Initializer ==
+The Kaiming He method can be used to initialize the weights when using the ReLU activation function. Say we have a sub-network with stem:[D] neurons in the lower layer, and stem:[J] neurons in the upper layer.
+
+=== Using Normal Distribution ===
+* The optimal variance of the initial weight distribution in the forward direction is
++
+[stem]
+++++
+\text{Var}(\textbf{W}^l) = \frac{2}{D}
+++++
+
+* The optimal variance of the initial weight distribution in the backward direction is
++
+[stem]
+++++
+\text{Var}(\textbf{W}^l) = \frac{2}{J}
+++++
+
+Either one can be used. For example, if the number of neurons in the lower layer is 80 and the number of neurons in the upper layer is 100, the initial weights between the lower and upper layer are set by drawing them from a normal distribution with mean 0 and variance stem:[\frac{2}{80}] or stem:[\frac{2}{100}]. 
+
+=== Using Uniform Distribution ===
+The optimal range of the uniform distribution for weight initialization is
+
+[stem]
+++++
+a = \sqrt{\frac{6}{D}}
+++++
+
+The weights are initialized from stem:[U \sim \left( -\sqrt{\frac{6}{D}}, \sqrt{\frac{6}{D}}\right)].
+
+== Through Residual Networks ==
+To keep the variance of the outputs constant across the layers, we can have a residual block. Here, after the second layer, we add the input to the output of the second layer. Then the output from the second layer (after addition) is stem:[f(x) + x]. The variance of the outputs of this layer may go beyond the variance of the input layer, stem:[\text{Var}(f(x) + x) > \text{Var}(x)].
+
+image::.\images\residual_block.png[align='center', 500, 300]
+
+As we repeat this block, the variance keeps growing as we go deeper into the network. So to overcome this initialize the weights of the first layer with Kaiming he's method and set the weights of the second layer to zero. This helps us achieve stem:[\text{Var}(f(x) + x) = \text{Var}(x)].
+
+== Effects of Random Weights ==
+What if all the parameters are initialized to zero? Or, a constant?
 
 *Constant Weights:*
 
@@ -26,18 +241,4 @@ stem:[\mathbf{s}^l = \mathbf{W}^l \mathbf{x}^{l-1} + \mathbf{b}^l ]. The gradien
 
 If the weights are set to very small values, we run into the problem of vanishing gradients. Here we end up multiplying the upstream gradient with a small value. If we repeat it across layers, the effect will be amplified, leading to vanishing gradients. This results in zero value for gradient and no parameter updates. The learning will be stopped and the loss value remains the same as we progress.
 
-How to identify a good range for the weights?
-
-=== Random Initialization ===
-We generally initialize the weights randomly. Let stem:[d_l] be the number of neurons in the stem:[l]th layer and stem:[d_{l-1}] be the number of neurons in the stem:[(l-1)]th layer.
-
-[source, python]
-----
-W = 0.001 * np.random.randn(dl, dl-1)
-----
-
-We are sampling from stem:[\mathcal{N}(0,1)], and multiplying the samples by 0.001. This changes the standard deviation from 1 to 0.001 and the mean remains the same.
-
-
-
-
+WARNING: We typically regularize only the weights and leave the biases unregularized. Regularizing bias may induce underfitting.

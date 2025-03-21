@@ -1,0 +1,98 @@
+= Dropout Regularization =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Dropout Overview ==
+Dropout is one of the regularization methods to prevent overfitting in neural networks. It works in two steps: Zero-out and scaling.
+
+During the training process, at each iteration (with a mini-batch of input), some neurons in the hidden layer (or input layer) are *randomly selected* and the outputs of those neurons are set to zero. This is *zero-out step*. If the output of a neuron is zero, any weights connected to that neuron will not be updated during that iteration, i.e., the initial weights are retained.
+
+* In the training process, some neurons are selected and dropped, resulting in a thin network with those neurons excluded.
+* In the prediction process, all neurons are used without dropout of any neurons.
+
+Because the training and prediction processes work differently, it is necessary to scale the outputs of neurons. During the training process, we can make the outputs of neurons that were not selected larger. Or, during the prediction process, we can make the weights smaller. The former is called the *scale-up method*, and the latter is called the *scale-down method*. Keras uses the scale-up method.
+
+== Zero-out Step ==
+The output of the second neuron is set to zero. The five weights connected to this neuron are not updated during the training. In the next iteration, another neuron will be selected and dropped.
+
+image::.\images\dropout_01.png[align='center', 600, 300]
+
+TIP: To manually set the output of a neuron to 0, multiply the outputs of a hidden layer by a mask vector consisting of 0s and 1s, where zeroes correspond to the neurons that we want to drop out. For example, if a hidden layer has four neurons and we want to drop out the third one, multiply the outputs of the layer by stem:[[1,1,0,1\]]. We can create stem:[2^4] such mask vectors in the case.
+
+=== Ensemble Effect ===
+
+During the training process, it is similar to multiple small networks being trained independently, and during the prediction process, it is similar to the multiple small networks being combined into a single large network. This is similar to bagging in ensemble methods.
+
+This leads to ensemble effects, which reduce the variance of predictions and stabilize the model. Thus, it will help prevent overfitting.
+
+image::.\images\dropout_02.png[align='center', 900, 600]
+
+=== Prevents Co-adaptation ===
+Dropout improves independence between the units and prevents co-adaptation of the units in the network.
+
+Among the weights in a neural network, some may contribute significantly to reducing loss while others may not. During training, if all the weights are updated together, the weights that reduce the loss significantly will continue to be updated a lot, while the weights that do not will continue to be updated little by little.
+
+This leads to some units learning more and contributing more to the loss, and other units learning less (learning only the part that are not learnt by other neurons) and contributing less to the loss.
+
+As the weights are randomly selected and updated, this problem can be prevented through dropout technique. But it forces the network to learn redundancy as all the neurons try to learn all the things.
+
+CAUTION: In some applications, co-adaptation can be looked as an advantage as it reduces redundancy among the units in the network.
+
+== Scaling Step ==
+During training, we have trained multiple sub-networks. In the prediction stage, we should ideally pass the test input through all those sub-networks and take the average of all those outputs. But this is not practically feasible as we have to carry out multiple forward passes, so we resort to the following approximation methods.
+
+=== Scale-down during Prediction Stage ===
+During training, some neurons in a layer are dropped out, and during prediction, all neurons are used, so the average output of the training and prediction processes do not match. So we need to adjust the average output. This can be done during training or during prediction. In the training stage, the outputs of that layer are scaled up, or in the prediction stage, the weights of that layer are scaled down.
+
+Consider a simple network with five neurons in the hidden layer. Let's call the probability of a neuron not being dropped stem:[p] and not dropped stem:[1-p]. Assume
+
+* Retention probability stem:[p=\frac{4}{5}].
+* Dropout probability stem:[1-p=\frac{1}{5}]. Also called as the dropout rate stem:[r].
+
+During training, the dropout rate is one-fifth, so on average, 1 in 5 neurons is dropped per iteration. And let's call the output of each neuron stem:[h_j]. Assume there are no biases, and the activation function in the hidden layer is linear.
+
+In this iteration, let's assume that the second neuron has been dropped. Then the output from the network is stem:[y= \sum_{j=1}^4 h_j \cdot w_j]. However, during prediction, all five neurons in the hidden layer are used. Then, the output of the training process and the output of the prediction proces will not match. One of the two needs to be modified.
+
+Let's see how to scale down the weights during the prediction process. We cannot match the two outputs exactly, but to roughly match the average outputs, we can multiply the prediction result by stem:[\frac{4}{5}]. This amounts to reducing stem:[w_j] by stem:[p] times. Then the average of the two outputs will be similar.
+
+image::.\images\dropout_03.png[align='center', 500, 400]
+
+*Example:*
+
+During training, dropout results in multiple sub-networks as below:
+
+image::.\images\dropout_04.png[align='center', 500, 400]
+
+What actually happens:
+
+Suppose a unit in a hidden layer is present with probability stem:[p] at training time and is connected to units in the next layer with weight stem:[\mathbf{w}]. At test time, this neuron is always present, so we multiply the weights by stem:[p]. Therefore, the output at test time is the same as the expected output at training time.
+
+image::.\images\dropout_05.png[align='center', 500, 400]
+
+=== Scale-up during Training Stage ===
+Let's see how to scale up the outputs of the layer during the training process. Keras uses this method. Let
+
+* Retention probability stem:[p=\frac{4}{5}].
+* Dropout probability stem:[1-p=\frac{1}{5}]. Also called as the dropout rate stem:[r].
+
+During the training process, we do two things:
+
+* Some neurons in the hidden layer (or input layer) are randomly selected at the specified dropout rate stem:[r] and the outputs of those neurons are set to zero.
+
+* The outputs of other neurons in the hidden layer are scaled-up by stem:[\frac{1}{1-r}].
+
+image::.\images\dropout_06.png[align='center', 400, 400]
+
+Here during the training stage, multiplying the outputs of the hidden layer by stem:[\frac{5}{4}] makes the average result the same as the result of the prediction stage.
+
+IMPORTANT: We don't do anything in the prediction stage.
+
+=== Optimal Dropout Rate ===
+Dropout introduces an extra hyperparameter - the probability of retaining a unit stem:[p]. This hyperparameter controls the intensity of dropout. stem:[p=1] implies no dropout and low values of stem:[p] mean more dropout. Typical values of stem:[p] for hidden units are in the range 0.5 to 0.8. For input layers, the choice depends on the kind of input. For real-valued inputs, a typical value is 0.8.
+
+NOTE: Dropout is particularly used in dense (fully connected) layers with large number of parameters.
+
+
+

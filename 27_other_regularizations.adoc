@@ -1,0 +1,38 @@
+= Other Regularizations =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+Most often the best-fitting model is a large model that has been appropriately regularized. Anything that we carry out to improve the generalization performance of model is a regularization technique. Most of the techniques involve putting some form of pressure on the parameters of the model to make it behave in a certain way. Some of the popular regularization techniques are:
+
+* Parameter norm penalties (L1, L2 regularization)
+* Early stopping
+* Dataset Augmentation
+* Noise Robustness
+* Semi-supervised learning
+* Multi-task learning (Parameter Sharing)
+* Sparse representation
+* Dropout
+
+== Early Stopping ==
+Given a training and validation dataset, we train our model and evaluate it on the validation set after every three to five epochs. We stop the training whenever we encounter an increase in the validation error. Because beyond this point, the model may overfit and lead to poor generlization.
+
+== Dataset Augmentation ==
+The bestway to make the models generalize better is to train them with more data. So adding more training data points is also a regularization technique. The process of creating fake data and adding it to the training data is called dataset augmentation. We start with a sophisticated model, and by adding more data points to the training set, we put more pressure on the parameters of the model to vary only in a certain value range, i.e., we restrict the model from taking any free form.
+
+We can use the given dataset to create new data points. For example, in computer vision, we can rotate, flip, crop an image and create new training data points. This way we can create new data points that are variations of the original samples.
+
+== Multi-task Learning ==
+This method improves generalization by collecting samples arising out of multiple tasks. Suppose the input is stem:[\mathbf{x}], and it is fed to an MLP (with any number of layers). This part is called shared neural network (or trunk) and let's denote this MLP block by stem:[\mathbf{h}^{\text{shared}}].
+
+The outputs of this network are fed into three different neural networks stem:[\mathbf{h}^{(1)}, \mathbf{h}^{(2)}, \mathbf{h}^{(3)}] to perform different tasks, say stem:[T1, T2, T3] respectively, for the same input stem:[\mathbf{x}]. For example, let the input be an image, stem:[T1] can be semantic segmentation, stem:[T2] can be object detection, and stem:[T3] can be depth estimation.
+
+image::.\images\multi_task_learning.png[align='center', 300, 200]
+
+Similar to dataset augmentation, multi-task learning also put more pressure on the parameters of the shared layers to be better. The parameters that we learn in the shared neural network stem:[\mathbf{h}^{\text{shared}}] should simulataneously drive three different tasks. Thereby, we put pressure on these parameters and prevent them from overfitting to a specific task.
+
+This way, out of all the possible models, we restrict and end up learning a model that is good enough to solve all the three tasks simulataneously.
+
+TIP: In cases where we have only one task to perform, we can create an auxiliary task. We don't use these tasks for prediction but only for regularization. The auxiliary task that we choose should have strong affinity with the original task, i.e., solving the auxiliary task should help us solve the original task.
