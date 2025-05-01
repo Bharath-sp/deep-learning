@@ -1,20 +1,22 @@
-= Transformers =
+= Transformer Models =
 :doctype: book
 :stem: latexmath
 :eqnums:
 :toc:
 
 == Introduction ==
-There is a sequential nature to RNNs (and its variants). Suppose the length of the input sequence is stem:[n]. RNN runs through the time steps sequentially, so it needs stem:[\mathbb{O}(n)] steps to process this sentence. We cannot process all the steps parallely as each time step is recursively dependent on the previous step output. And RNNs also need attention to deal with long-range dependencies.
+There is a sequential nature to RNNs (and its variants). Suppose the length of the input sequence is stem:[n]. RNN runs through the time steps sequentially, so it needs stem:[\mathbb{O}(n)] steps to process this sentence. We cannot process all the steps parallely as each time step is recursively dependent on the previous step output. This is a bottleneck. And RNNs also use attention to deal with long-range dependencies.
 
-Since attention enables access to *any* encoder hidden state during decoding, do we need RNNs? With attention mechanism, we access the states of the encoder hidden state not as a sequence, but as a set (without respecting their temporal nature).
+Since attention enables access to *any* encoder hidden state during decoding, do we still need RNNs? It seems like we can get rid of them.
 
-These models are known as transformers because they transform a set of vectors in some representation space into a corresponding set of vectors, having the same dimensionality, in some new space, i.e., the dimension of the space is the same, but the subspace is different. The vectors are transformed from a subspace to another new subspace. The goal of the transformation is that the new subspace will have a richer internal representation that is better suited to solving downstream tasks.
+NOTE: With attention mechanism, we access the encoder hidden states not as a sequence, but as a set (without respecting their temporal nature).
 
-Transformers were originally introduced in the context of natural language processing, but have subsequently been found to achiev eexcellent results in many other domains.
+Transformer models are the models that are solely based on attention mechanisms, dispensing with recurrence and convolutions entirely. These models are known as transformers because they transform a set of vectors in some representation space into a corresponding set of vectors, having the same dimensionality, in some new space, i.e., the dimension of the space is the same, but the subspace is different. The vectors are transformed from a subspace to another new subspace. The goal of the transformation is that the new subspace will have a richer internal representation that is better suited to solving downstream tasks.
+
+Transformers were originally introduced in the context of natural language processing, but have subsequently been found to achieve excellent results in many other domains.
 
 == What is Attention? ==
-The fundamental concept that underpins a transformer is attention. Transformer models are solely based on attention mechanisms, dispensing with recurrence and convolutions entirely. Let's motivate the use of attention using natural language as an example, although it has much broader applicability.
+The fundamental concept that underpins a transformer is attention. Let's motivate the use of attention using natural language as an example, although it has much broader applicability.
 
 Consider the following two sentences:
 
@@ -69,51 +71,16 @@ The fundamental building block of a transformer is a  function (called as encode
 \tilde{\mathbf{X}} = \text{TransformerLayer}[\mathbf{X}]
 ++++
 
-We can then apply multiple transformer layers in succession to construct deep networks capable of learning rich internal representations. Each transformer layer contains its own weights and biases. A single transformer layer comprises two stages. The first stage  implements the attention mechanism and the second stage is a feedforward network.
+Suppose each input vector corresponds to an user. In this transformation, we project the input vectors from one space into another input space. For example, the input vectors may be of size 1000 with 1 and 0s representing whether an user has watched a particular movie or not (movies watched space). We transform this vector into a new space, i.e., to a vector of the same size, but with each element representing users' taste (taste space).
 
-== Attention Mechanism ==
-Suppose that we have a set of input tokens stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] in an embedding space and we want to map this to another set stem:[\mathbf{y}_1, \dots, \mathbf{y}_N] having the same number of tokens but in a new embedding space that captures a richer semantic structure.
-
-Consider a particular output vector stem:[\mathbf{y}_n]. The value of stem:[\mathbf{y}_n] should depend not just on the corresponding input vector stem:[\mathbf{x}_n], but on all the vectors stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] in the set. With attention, this dependence should be stronger for those inputs stem:[\mathbf{x}_m] that are particularly important for determining the modified representation of stem:[\mathbf{x}_n]. A simple way to achieve this is to define each output vector stem:[\mathbf{y}_n] to be a linear combination of the input vectors stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] with weighting coefficients stem:[a_{nm}]:
-
-[stem]
-++++
-\mathbf{y}_n = \sum_{m=1}^N a_{nm} \, \mathbf{x}_m
-++++
-
-where stem:[a_{nm}] are called attention weights. For example, to compute stem:[\mathbf{y}_1]:
-
-image::.\images\trans_attention_01.png[align='center', 400]
-
-The coefficients stem:[a_{nm}] should be close to zero for input tokens that have little influence on the output stem:[\mathbf{y}_n] and largest for inputs that have most influence. The weighting coefficients must satisfy the following two constraints:
-
-[stem]
-++++
-a_{nm} \geq 0  \, \, \text{  and  } \, \, \sum_{m=1}^N a_{nm} = 1
-++++
-
-Together these imply that each coefficient lies in the range stem:[0 \leq a_{nm} \leq 1]. For the special case stem:[a_{mm}= 1], it follows that stem:[a_{nm} = 0] for stem:[n \ne m], and therefore stem:[\mathbf{y}_m = \mathbf{x}_m] so that the input vector is unchanged by the transformation. In general, the output stem:[\mathbf{y}_n] is a blend of the input vectors with some inputs given more weight than others.
-
-Note that we have a different set of weight coefficients for each output vector stem:[\mathbf{y}_n]. And these coefficients stem:[a_{nm}] depend on the input data.
-
-=== Self-attention ===
-How to determine the coefficients stem:[a_{nm}]?
-
-== FFN Layer ==
-After self-attention, the second stage of the Transformer layer applies a feedforward network (FFN) to each token independently. This FFN consists of two fully connected layers and non-linearity (usually ReLU or GELU). It transforms the token representations further by mixing information within each token vector across different feature dimensions. The non-linearity in this layer adds sophistication to the model, i.e., the ability to learn complex feature interactions.
-
-This two-step process ensures that each token captures both contextual dependencies (via attention) and complex feature interactions (via FFN).
-
-Each token flows through the two layers of the encoder through its own path. All the input tokens can be updated simultaneously. So the encoder require only stem:[\mathbb{O}(1)] steps to process the whole input sequence. Unlike in RNNs, we don't have to process the tokens sequentially.
-
-image::.\images\trans_block_03.png[align='center', 500, 400]
+We can then apply multiple transformer layers (encoder blocks) in succession to construct deep networks capable of learning rich internal representations.
 
 == Transformer Model ==
 It consists of an encoder-decoder and it is built on self-attention. The self-attention mechanism allows us to get all the representations (hidden states of the encoder) simultaneously.
 
 image::.\images\trans_block_01.png[align='center', 700, 400]
 
-Each word in the input sequence is transformed to a fixed-size vector. These vectors are fed into the bottom-most encoder. Other encoders receive updated representation vectors from the encoder immediately below it. The final outputs from the encoder are passed to the decoder. The decoder decodes and generates the output sequence. The encoder module has a stack of encoders. Similarly, the decoder module has a stack of decoders. Each encoder has a self-attention layer and a FFN layer. And a decoder has a self-attention layer, an encoder-decoder attention layer and a FFN layer.
+Each word in the input sequence is transformed to a fixed-size vector. These vectors are fed into the bottom-most encoder. Other encoders receive updated representation vectors from the encoder immediately below it. The final outputs from the encoder are passed to the decoder. The decoder decodes and generates the output sequence.
 
 image::.\images\trans_block_02.png[align='center', 500, 300]
 
@@ -136,7 +103,7 @@ In this example, each subset consists of five sequential data points.
 
 * An embedding layer for the time series is added to the input layer. In natural language processing, word embedding layers are used, but since we are dealing with time series data, we use a simple linear feedforward layer for the embedding layer.
 +
-The outputs of this layer are vector representations of the time series data. The size of the vector is a hyperparameter called d_model.
+The outputs of this layer are vector representations of the time series data. The size of the vector is a hyperparameter stem:[D_k].
 
 * Since time series prediction is a regression problem, we do not use softmax in the output layer. Therefore, the outputs are real values, not probabilities.
 

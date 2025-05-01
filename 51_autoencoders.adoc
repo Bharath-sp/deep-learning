@@ -1,0 +1,104 @@
+= Autoencoders =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Motivation ==
+A central goal of deep learning is to learn representation of data. One way to do so is through Autoencoders. These networks allow us to learn data representation in an *unsupervised* way, i.e., we don't have to provide labels. The Autoencoders map the input stem:[\mathbf{x}] to itself. Hence, they are also known as auto-associative neural networks.
+
+Given an image of a human face, there are certain factors that we can alter to make changes in the data such as skull size, shape, skin color, eyes, features of nose, lips, etc. These factors are actually the reason for variations in the data. Each of these factors have a permissible range. By changing these factors, we can create diverse data samples. These factors are referred to as the degrees of freedom. The number of such factors required will be very less compared to the actual dimension of the data, i.e., even a comprehensive list of such factors will be less than the number of pixels in the image.
+
+If we want to learn a model that create images of human faces, it makes sense to just learn the meaningful degrees of freedom that constitute the data. If we can model these relatively small number of dimensions, we can synthesize a new face with thousands of dimensions.
+
+====
+*Autoencoder principle:*
+
+Original input space is of higher dimensions but the data lies in a manifold of smaller dimension.
+====
+
+== Autoencoders Architecture ==
+An autoencoder is a feed-forward neural network having stem:[D] inputs, stem:[D] output units, and stem:[M] hidden units. It has the same number of input and output units. It is trained to generate output stem:[\mathbf{y}] that is as close as possible to the input stem:[\mathbf{x}]. The targets used to train the network are simply the input vectors themselves, so that the network attempts to map each input vector onto itself. Thus, the model is trained in an unsupervised way.
+
+The Autoencoder network consists of two parts. The first is an encoder, which maps the input stem:[\mathbf{x}] to a latent vector stem:[\mathbf{z}], and the second is a decoder, which reconstructs the original data stem:[\mathbf{x}] from the latent vector stem:[\mathbf{z}]. The output of the decoder is stem:[\mathbf{y}].
+
+image::.\images\autoencoders_01.png[align='center', 300, 300]
+
+If an autoencoder is to find non-trivial solutions, it is necessary to introduce some form of constraint, otherwise the network can simply copy the input values to the outputs (weights are 1). This constraint might be achieved, for example, by restricting the
+dimensionality of stem:[\mathbf{z}] (by making stem:[M < D]) relative to that of stem:[\mathbf{x}] or by requiring stem:[\mathbf{z}] to have a sparse representation of stem:[\mathbf{x}] (by making stem:[M > D]).
+
+NOTE: Since we just want to capture the essential information from the inputs that are sufficient to recreate the original image, we often set the dimensionality of stem:[\mathbf{z}] to be smaller than the dimensionality of stem:[\mathbf{x}].
+
+The space in which the hidden representation stem:[\mathbf{z}] resides is known as the latent or hidden space. The dimension of the latent space is a hyper-parameter.
+
+image::.\images\autoencoders_02.png[align='center', 500, 300]
+
+Since the number of hidden units is smaller than the number of inputs, a perfect reconstruction of all input vectors is not in general possible. We therefore determine the network parameters stem:[\mathbf{w}] by minimizing an error function that captures the degree of mismatch between the input vectors stem:[\mathbf{x}] and their reconstructions stem:[\mathbf{y}]. In particular, we choose a sum-of-squares error of the form
+
+[stem]
+++++
+E(\mathbf{w}) = \frac{1}{N} \sum_{n=1}^N \| \mathbf{y}(\mathbf{x}_n, \mathbf{w}) - \mathbf{x}_n \|^2
+++++
+
+To be precise, we find the parameters of the encoder stem:[\mathbf{w}_f] and decoder stem:[\mathbf{w}_g] by optimizing the reconstruction loss
+
+[stem]
+++++
+\hat{\mathbf{w}}_f,  \hat{\mathbf{w}}_g = \arg \min_{\mathbf{w}_f, \mathbf{w}_g} \frac{1}{N} \sum_{n=1}^N \| g(f(\mathbf{x}_n; \mathbf{w}_f ); \mathbf{w}_g) - \mathbf{x}_n \|^2
+++++
+
+NOTE: For binary inputs with sigmoid non-linearity in the output layer, we can also use binary cross-entropy loss.
+
+Once trained, an internal layer within the neural network gives a representation stem:[\mathbf{z}(\mathbf{x})] for each new input. 
+
+== Deterministic Autoencoders ==
+PCA is actually a simple autoencoder that makes a (single) linear transformation of an input vector onto a lower dimensional manifold (a low-dimensional structure like a curved surface embedded within a higher-dimensional space), and the resulting projection can be approximately reconstructed back in the original data space, again through a (single) linear transformation.
+
+image::.\images\autoencoders_03.png[align='center', 300, 300]
+
+Better results can be made possible using a neural network with many hidden layers with nonlinear activation instead of just one hidden layer with linear activation. Therefore, we resort to deep autoencoders (also known as stacked autoencoders) to get sophisticated representation of the input data. This allows the network to learn hierarchical representations of the input data stem:[\mathbf{x}], with each layer capturing more complex features.
+
+image::.\images\autoencoders_04.png[align='center', 400, 300]
+
+For the MNIST data that has stem:[28 \times 28] images, the images can be flattened and we can have stem:[D=784] and stem:[M=32]. We can capture most of the variations with only 32 degrees of freedom.
+
+CAUTION: The latent layer may not have non-linear activations.
+
+Autoencoders can be applied to dimensionality reduction, noise removal, anomaly detection, etc.
+
+== Regularization ==
+The Autoencoder model may overfit to the training data and we regularize it to get better generalization performance. We say an autoencoder has a better generalization performance when it reconstructs unseen samples well. Over-complete autoencoders (more hidden units than the input dimension) leads to parameter explosion and are more prone to overfitting.
+
+* The simplest regularization is to add an L2 regularization term to the objective.
+* Tie the weights, i.e., stem:[\mathbf{W}_g = \mathbf{W}^\top_f]. For example, in the above figure, we can tie where stem:[\mathbf{W}_2] and stem:[\mathbf{W}_3] together, stem:[\mathbf{W}_1] and stem:[\mathbf{W}_4] together.
+
+== Denoising Autoencoders ==
+An alternative approach to avoid the autoencoder model simply learning the identity mapping (which is a kind of overfitting) and to force the model to discover interesting internal structure in the data is to use a denoising autoencoder. The idea is to take each input vector stem:[\mathbf{x}_n] and to corrupt it with noise to give a modified vector stem:[\tilde{\mathbf{x}}_n] which is then input to an autoencoder to give an output stem:[\mathbf{y}(\tilde{\mathbf{x}}_n, \mathbf{w})].
+
+The network is trained to reconstruct the original noise-free input vector by minimizing an error function given by
+
+[stem]
+++++
+E(\mathbf{w}) = \sum_{n=1}^N \| \mathbf{y}(\tilde{\mathbf{x}}_n, \mathbf{w}) - \mathbf{x}_n \|^2
+++++
+
+One way is to add independent zero-mean Gaussian noise stem:[\boldsymbol{\epsilon}_n]. Then
+
+[stem]
+++++
+\hat{\mathbf{w}} = \arg \min_{\mathbf{w}} \sum_{n=1}^N \| \mathbf{y}(\tilde{\mathbf{x}}_n + \boldsymbol{\epsilon}_n, \mathbf{w}) - \mathbf{x}_n \|^2
+++++
+
+Another way to add noise is to randomly set a chosen subset of the entries of the input vector to zero.
+
+By learning to denoise the input data, the network is forced to learn aspects of the structure of that data. For example, if the data comprises images, then learning that nearby pixel values are strongly correlated allows noise-corrupted pixels to be corrected. This can help to restore the missing components from an input.
+
+== Masked Autoencoders ==
+
+
+
+
+
+
+
+

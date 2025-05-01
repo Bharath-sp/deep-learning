@@ -1,0 +1,254 @@
+= Encoders in Transformers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+Each output representation is computed by attending to all input representations.
+
+== Encoder Block ==
+How does a word flow through encoders?
+
+All encoders receive a list of vectors each of size 768 - in the bottom encoder, that would be the word embeddings, but in other encoders, it would be the output of the encoder that is directly below. Say our input is the text " I like to draw". After adding the markers CLS, SEP and PAD, we have:
+
+image::.\images\self_attention_01.png[align='center', 400, 300]
+
+. Each of these tokens has a word embedding vector, say, a vector of size 768.
+. Say the current word that we are encoding is 'like'. The embedding of this word goes into the self-attention layer. Then the self-attention layer refers to the surrounding words and outputs an encoded version of the embedding.
+. Then this updated vector is fed into the FFN. This produces the final encoding of the word 'like'.
+. The process repeats for all other words in the text.
+. Then, we pass these vectors through a FFN layer with non-linear activation. The outputs from the encoder block will have the same dimension as its input, but in a different subspace.
+
+The word in each position flows through its own path through the encoder. All the input tokens can be updated simultaneously, i.e., the various paths can be executed in *parallel*. So the encoder require only stem:[\mathbb{O}(1)] steps to process the whole input sequence. Unlike in RNNs, we don't have to process the tokens sequentially.
+
+=== Self Attention Mechanism ===
+Let stem:[\mathbf{X}_{N \times d_{\text{model}}}] be the sum of the input embedding and the positional encoding. And it is the input to the encoder.
+
+Suppose that we have a set of input tokens stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] in an embedding space and we want to map this to another set stem:[\mathbf{y}_1, \dots, \mathbf{y}_N] having the same number of tokens but in a new embedding space that captures a richer semantic structure.
+
+Consider a particular output vector stem:[\mathbf{y}_n]. The value of stem:[\mathbf{y}_n] should depend not just on the corresponding input vector stem:[\mathbf{x}_n], but on all the vectors stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] in the set. With attention, this dependence should be stronger for those inputs stem:[\mathbf{x}_m] that are particularly important for determining the modified representation of stem:[\mathbf{x}_n]. A simple way to achieve this is to define each output vector stem:[\mathbf{y}_n] to be a linear combination of the input vectors stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] with weighting coefficients stem:[a_{nm}]:
+
+[stem]
+++++
+\mathbf{y}_n = \sum_{m=1}^N a_{nm} \, \mathbf{x}_m
+++++
+
+where stem:[a_{nm}] are called attention weights. For example, to compute stem:[\mathbf{y}_1]:
+
+image::.\images\trans_encoder_03.png[align='center', 400]
+
+The coefficients stem:[a_{nm}] should be close to zero for input tokens that have little influence on the output stem:[\mathbf{y}_n] and largest for inputs that have most influence. The weighting coefficients must satisfy the following two constraints:
+
+[stem]
+++++
+a_{nm} \geq 0  \, \, \text{  and  } \, \, \sum_{m=1}^N a_{nm} = 1
+++++
+
+TIP: Without these constraints, we get the same effect of the linear combinations in multiple ways.
+
+Together these imply that each coefficient lies in the range stem:[0 \leq a_{nm} \leq 1]. For the special case stem:[a_{mm}= 1], it follows that stem:[a_{nm} = 0] for stem:[n \ne m], and therefore stem:[\mathbf{y}_m = \mathbf{x}_m] so that the input vector is unchanged by the transformation. In general, the output stem:[\mathbf{y}_n] is a blend of the input vectors with some inputs given more weight than others.
+
+Note that we have a different set of weight coefficients for each output vector stem:[\mathbf{y}_n]. And these coefficients stem:[a_{nm}] depend on the input data.
+
+=== Attention Weights ===
+How to determine the attention weights stem:[a_{nm}]?
+
+To output stem:[\mathbf{y_n}], we use stem:[\mathbf{x_n}] as the query vector. Then to see how much the token represented by stem:[\mathbf{x}_m] should attend to the token represented by stem:[\mathbf{x_n}], we need to work out how similar these vectors are. One simple measure of similarity is to take their dot product stem:[\mathbf{x}_n^\top \mathbf{x}_m)]. To impose the constraints of the weight coefficients, we can define the weighting coefficients as
+
+[stem]
+++++
+a_{nm} = \frac{\text{exp}(\mathbf{x}_n^\top \mathbf{x}_m)}{\sum_{m'=1}^N \text{exp}(\mathbf{x}_n^\top \mathbf{x}_{m'})}
+++++
+
+NOTE: In this case there is no probabilistic interpretation of the softmax function and it is simply being used to normalize the attention weights appropriately.
+
+Then, use these weights to compute
+
+[stem, id='eq_1']
+++++
+\begin{align}
+\mathbf{y}_n = \sum_{m=1}^N a_{nm} \, \mathbf{x}_m
+\end{align}
+++++
+
+Then, we can write <<id_1, Equation 1>> in matrix notation
+
+[stem]
+++++
+\mathbf{Y}_{N \times d_{\text{model}}} = \text{Softmax}[\mathbf{X}\mathbf{X}^\top] \mathbf{X}
+++++
+
+where stem:[\text{Softmax}[\mathbf{L}]] is an operator that takes the exponential of every element of a matrix stem:[\mathbf{L}] and then normalizes each row independently to sum to one.
+
+This process is called self-attention because we are using the same sequence to determine the queries, keys, and values. Also, because the measure of similarity between query and key vectors is given by a dot product, this is known as dot-product self-attention.
+
+We have two problems with this approach:
+
+* The transformation from stem:[\mathbf{X}] to stem:[\mathbf{Y}] is fixed; has no capacity to learn from the data because it has no adjustable parameters.
+* Each element within a vector stem:[\mathbf{x}_n] plays an equal role in determining the attention coefficients, whereas we would like the network to have the flexibility to focus more on some features than others when determining token similarity.
+
+We can address both issues if we define
+
+[stem]
+++++
+\begin{align*}
+\mathbf{Q} & = \mathbf{XW}^{(q)} \\
+\mathbf{K} & = \mathbf{XW}^{(k)} \\
+\mathbf{V} & = \mathbf{XW}^{(v)} \\
+\end{align*}
+++++
+
+where the weight matrices stem:[\mathbf{W}^{(q)}, \mathbf{W}^{(k)}, \mathbf{W}^{(v)}] represent parameters that will be learned during the training of the transformer.
+
+* stem:[\mathbf{W}^{(k)}] and stem:[\mathbf{W}^{(q)}] are stem:[d_{\text{model}} \times d_{\text{model}}] matrices, where stem:[d_{\text{model}}] is the length of the key and query vector. These matrices transform the input vectors into attributes spaces. The resulting vectors: a query vector captures only the important attributes, whereas a key vector captures all the attributes of the word.
+
+* stem:[\mathbf{W}^{(v)}] is a stem:[d_{\text{model}} \times d_{\text{model}}] matrix, and here stem:[d_{\text{model}}] is the dimensionality of the output vector. This matrix transforms the input vectors into the semantics space, i.e., actual meaning of the word. A value vector captures the meaning of the word.
+
+NOTE: In practice we can also include bias parameters in these linear transformations. However, the bias parameters can be absorbed into the weight matrices by augmenting the data matrix stem:[\mathbf{X}] with an additional column of 1's and by augmenting the weight matrices with an additional row of parameters to represent the biases.
+
+So for each word in the text, we extract parts of it to create a query vector, a key vector, and a value vector. Then
+
+[stem]
+++++
+\begin{align*}
+\mathbf{S} & = \mathbf{Q}\mathbf{K}^\top \\
+\alpha_{ij} & = \text{Softmax}[\mathbf{S}]_{ij} = \frac{\text{exp}(S_{ij})}{ \sum_{j'} \text{exp}(S_{ij'})} \\
+\mathbf{Y}_{N \times  d_{\text{model}}} & = \boldsymbol{\alpha} \mathbf{V} = \text{Softmax}[\mathbf{Q}\mathbf{K}^\top] \mathbf{V}
+\end{align*}
+++++
+
+* In stem:[\mathbf{Q}\mathbf{K}^\top] operation, every query vector (each row of stem:[\mathbf{Q}]) is multiplied by all the key vectors (all the rows of stem:[\mathbf{K}]). This results in a stem:[N \times N] matrix. The matrix stem:[\mathbf{S}] represents the *attention scores*. This represent the degree of importance a query token assigns to a key token.
+
+* The *attention weights* are obtained by applying a softmax function (row-wise) over these scores. 
+
+* Given attention weights matrix stem:[\boldsymbol{\alpha}] and value matrix stem:[\mathbf{V}], the *attention values* are computed stem:[\mathbf{Y}]. This represents the final weighted sums of the value vectors, forming the actual output of the attention mechanism.
+
+image::.\images\trans_encoder_04.png[align='center', 700]
+
+*Scaled self-attention:*
+
+Recall that the gradients of the softmax function become exponentially small for inputs of high magnitude. To help prevent this from happening, we can re-scale the product of the query and key vectors before applying the softmax function. So that the output of the attention layer takes the form:
+
+[stem]
+++++
+\mathbf{Y}_{N \times d_{\text{model}}} = \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Softmax}\left[ \frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{D_k}} \right] \mathbf{V}
+++++
+
+This is called scaled dot-product self-attention, and is the final form of our self-attention neural network layer.
+
+image::.\images\trans_encoder_05.png[align='center', 600, 400]
+
+The output of the encoders is the updated representations of the input vectors. This structure constitutes a single attention 'head'. 
+
+=== Multi-Head Attention ===
+There may be multiple patterns of attention that are relevant at the same time. In natural language, for example, some patterns might be relevant to tense whereas others might be associated with vocabulary. That is, according to one notion, a set of words might be more relevant. And in another notion, a different set of words might be more relevant. Using a single attention head can lead to averaging over these effects. Instead we can use multiple attention heads in parallel.
+
+These consist of identically structured copies of the single head, with independent learnable parameters that govern the calculation of the query, key, and value matrices. Suppose we have stem:[H] heads indexed by stem:[h=1,\dots, H] of the form
+
+[stem]
+++++
+\mathbf{H}_h = \text{Attention}(\mathbf{Q}_h, \mathbf{K}_h, \mathbf{V}_h)
+++++
+
+where we have defined separate query, key, and value matrices for each head using
+
+[stem]
+++++
+\begin{align*}
+\mathbf{Q}_h & = \mathbf{XW}_h^{(q)} \\
+\mathbf{K}_h & = \mathbf{XW}_h^{(k)} \\
+\mathbf{V}_h & = \mathbf{XW}_h^{(v)} \\
+\end{align*}
+++++
+
+Each head enables to have different representational subspace. Each matrix stem:[\mathbf{H}_h] has dimension stem:[N \times d_{\text{model}} / H].
+
+CAUTION: Multiple heads may learn the same information as well. Once the model is trained, one can check the redundant blocks and remove them to make the model efficient.
+
+The resulting heads are concatenated into a single matrix. This gives the concatenated attention values. Then, we feed this into another linear projection layer where it is linearly transformed using a matrix stem:[\mathbf{W}^{(o)}] to give the output in the form:
+
+[stem]
+++++
+\mathbf{Y}(\mathbf{X}) = \text{Concat}[\mathbf{H}_1, \dots, \mathbf{H}_H] \mathbf{W}^{(o)}
+++++
+
+image::.\images\trans_encoder_07.png[align='center', 400, 300]
+
+The matrix stem:[\mathbf{Y}] is of dimension stem:[N \times d_{\text{model}}], which is the same as the original input matrix stem:[\mathbf{X}]. 
+
+image::.\images\trans_encoder_08.png[align='center', 500, 500]
+
+Here stem:[D = d_{\text{model}}].
+
+Let stem:[N=5], stem:[d_{\text{model}}=6] and stem:[H=2]. Feed stem:[\mathbf{X}] into three linear projection layers. The number of neurons in each linear projection layer is stem:[D_k=2]. The parameters of each linear projection layer are stem:[\mathbf{W}^{(q)}, \mathbf{W}^{(k)}, \mathbf{W}^{(v)}]. Each parameter is a stem:[6 \times 2] matrix.
+
+image::.\images\multi_head_attention.png[align='center']
+
+Blue matrices are parameters. Information flow in a multi-head attention layer:
+
+image::.\images\trans_encoder_09.png[align='center', 500, 400]
+
+=== Add and Normalize ===
+To improve training efficiency, we can introduce residual connections that bypass the multi-head structure. To do this we require that the output dimensionality is the same as the input dimensionality, stem:[N \times d_{\text{model}}]. This is then followed by layer normalization.
+
+[stem]
+++++
+\mathbf{Z} = \text{LayerNorm}[\mathbf{Y}(\mathbf{X}) + \mathbf{X}]
+++++
+
+Sometimes the layer normalization is replaced by pre-norm in which the normalization layer is applied before the multi-head self-attention
+instead of after, as this can result in more effective optimization, in which case we have
+
+[stem]
+++++
+\mathbf{Z} = \text{LayerNorm}[\mathbf{Y}(\mathbf{X}') + \mathbf{X}] \hspace{1cm} \text{where  } \mathbf{X}' = \text{LayerNorm}[\mathbf{X}]
+++++
+
+In each case, stem:[\mathbf{Z}] has the same dimensionality stem:[N \times d_{\text{model}}] as the input matrix stem:[\mathbf{X}].
+
+=== FFN Layer ===
+We have seen that the self-attention mechanism creates linear combinations of the value vectors, which are then linearly combined to produce the output vectors. Also, the values are linear functions of the input vectors, and so we see that the outputs of an attention layer are constrained to be linear combinations of the inputs.
+
+Nonlinearity does enter through the attention weights, and so the outputs will depend nonlinearly on the inputs via the softmax function, but the output vectors are still constrained to lie in the subspace spanned by the input vectors and this limits the expressive capabilities of the attention layer.
+
+We can enhance the flexibility of the transformer by post-processing the output using a standard nonlinear neural network with stem:[d_{\text{model}}] inputs and stem:[d_{\text{model}}] outputs. For example, this might consist of a two-layer fully connected network with ReLU hidden units. The non-linearity in this layer adds sophistication to the model, i.e., the ability to learn complex mapping functions and feature interactions.
+
+We apply a feedforward network (FFN) to each output vector independently, i.e., the same shared network is applied to each output vector, corresponding to the rows of stem:[\mathbf{Z}].
+
+=== Again Add and Normalize ===
+Again, this neural network layer can be improved by using a residual connection. It also includes layer normalization so that the final output from an encoder layer has the form:
+
+[stem]
+++++
+\mathbf{E} = \text{LayerNorm}[\text{MLP}[\mathbf{Z}] + \mathbf{Z}]
+++++
+
+This leads to an overall architecture for one encoder block:
+
+image::.\images\trans_encoder_10.png[align='center', 400, 400]
+
+The whole process in the encoder block can be given as:
+
+image::.\images\trans_encoder_11.png[align='center']
+
+In a typical transformer there are multiple such encoder blocks stacked on top of each other. The output from the last encoder block will be of the same size as the input stem:[N \times d_{\text{model}}] and it has the updated representations of all the tokens.
+
+== Computational Complexity ==
+The attention layer has stem:[N] input tokens and stem:[N] output tokens, each of stem:[D] dimensions. The overall dimension of the input (or output) is stem:[ND] (on squeezing it to a long vector). The transformation is from stem:[\mathbb{R}^{ND} \to \mathbb{R}^{ND}].
+
+* If we used a single fully-connected layer, each input is connected to all the outputs. So we have stem:[\mathbb{O}(N^2 D^2)] independent parameters. The computational cost for one forward pass is stem:[\mathbb{O}(N^2 D^2)].
+
+* In an attention layer, stem:[\mathbf{W}^{(q)}, \mathbf{W}^{(k)}, \mathbf{W}^{(v)}] are shared across all the input tokens. Assuming stem:[D_k = D_v = D], the number of independent parameters is stem:[\mathbb{O}(D^2)] (actually stem:[3 * \mathbb{O}(D^2)]). Since there are stem:[N] input tokens, the number of computational steps in evaluating the dot products stem:[\mathbf{QK}^\top] in a self-attention layer is stem:[\mathbb{O}(N^2 D)]. Each query vector is multiplied by all the key vectors and each vector has stem:[D] elements.
++
+The subsequent FFN layer has stem:[D] inputs and stem:[D] outputs. The number of parameters is stem:[\mathbb{O}(D^2)]. Since it is shared across stem:[N] tokens, it has a computational cost of stem:[\mathbb{O}(ND^2)].
++
+The total computational cost is the summation of the computation cost of both the layers.
+
+Compared to a fully connected network, a transformer layer is computationally more efficient.
+
+
+
+
+
+
+

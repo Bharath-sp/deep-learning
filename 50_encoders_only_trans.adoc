@@ -1,0 +1,56 @@
+= Encoder Transformers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Encoder Transformers ==
+We next consider transformer language models based on encoders, which are models that take sequences as input and produce fixed-length vectors, such as class labels, as output. An example of such a model is BERT, which stands for bidirectional encoder representations from transformers. BERT is a language model that pre-trained on a large dataset of text, allowing it to understand the nuances of language and context.
+
+The goal is to pre-train a language model using a large corpus of text and then to fine-tune the model using transfer learning for a broad range of downstream tasks each of which requires a smaller application-specific training data set.
+
+== Architecture ==
+The first token of every input string is given by a special token <class>, and the corresponding output of the model is ignored during pre-training. Its role will become apparent when we discuss fine-tuning.
+
+image::.\images\encoder_trans_01.png[align='center', 500, 500]
+
+The model is pre-trained by presenting token sequences at the input. A randomly chosen subset of the tokens, say 15%, are replaced with a special token denoted <mask>. The model is trained to predict the missing tokens at the corresponding output nodes. For example, an input sequence might be
+
+ I <mask> across the river to get to the <mask> bank.
+
+and the network should predict 'swam' at output node 2 and 'other' at output node 10. In this case only two of the outputs contribute to the error function and the other outputs are ignored. The LSM layer is applied only at the masked nodes.
+
+CAUTION: The <class> and <mask> tokens are learnable tokens.
+
+The term 'bidirectional' refers to the fact that the network sees words both before and after the masked word and can use both sources of information to make a prediction.
+
+TIP: Here we don't iterate as we did with the decoder. Given an input sequence, this configuration just predicts the masked words. It's a single forward-pass operation.
+
+== Fine-Tuning ==
+Once the encoder model is trained it can then be fine-tuned for a variety of different tasks. To do this a new output layer is constructed whose form is specific to the task being solved.
+
+* For a text classification task, only the first output position is used, which corresponds to the <class> token that always appears in the first position of the input sequence. If this output has dimension stem:[D] then a matrix stem:[D \times K], where stem:[K] is the number of classes, is appended to the first output node and this in turn feeds into a stem:[K]-dimensional softmax function, or a vector of dimension stem:[D \times 1] followed by a logistic sigmoid for stem:[K = 2].
+
+* If the goal is to classify each token of the input string, for example to assign each token to a category (such as tense, verb, adjective, etc) then the first output is ignored and the subsequent outputs have a shared linear-plus-softmax layer.
+
+During fine-tuning all model parameters including the new output matrix are learned.
+
+== Transformers - Computer Vision ==
+The transformer architecture can also be used for computer vision applications. The most common choice for discriminative tasks is a standard transformer encoder, and this approach in the vision domain is known as a vision transformer, or ViT.
+
+*How to tokenize an image:*
+Suppose the images have dimensionss stem:[\mathbf{x} \in \mathbb{R}^{H \times W \times C}] where stem:[H] and stem:[W] are the height and width of the image in pixels and stem:[C] is the number of channels. How to tonekize it?
+
+The simplest choice is to use each pixel as a token, following a linear projection. Then, each pixel will be a single time step of the sequence. If the image is stem:[256 \times 256 \times 3], then the sequence length will be stem:[N = 1,96,608]. Each token will be a scalar. The memory required by a standard transformer implementation grows quadratically with the number of input tokens, so this approach is generally infeasible. Instead, the most common approach is to split the image into a set of patches of the same size.
+
+Each image is split into non-overlapping patches. Each patch is of stem:[P \times P] (where stem:[P=16] is a common choice) and then 'flattened' into a one-dimensional vector, which gives a representation stem:[\mathbf{x} \in \mathbb{R}^{N \times (P^2 \times C)}] where stem:[N = \frac{HW}{P^2} = ] area of the larger square / area of each patch is the total number of patches for one image. For our example, there will be 256 patches, i.e., the sequence length will be stem:[N=256] and each token will be of length 768.
+
+image::.\images\vision_trans.png[align='center', 500, 500]
+
+
+
+
+
+
+
+

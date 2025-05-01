@@ -1,0 +1,99 @@
+= Positional Encoding =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Motivation ==
+In the transformer architecture, the matrices stem:[\mathbf{W}_h^{(q)}, \mathbf{W}_h^{(k)}, \mathbf{W}_h^{(v)}] are shared
+across the input tokens, as is the subsequent MLP neural network. As a consequence, the transformer has the property that permuting the order of the input tokens, i.e., the rows of stem:[\mathbf{X}], results in the same permutation of the rows of the output matrix stem:[\tilde{\mathbf{X}}]. 
+
+A transformer is `equivariant` with respect to input permutations. That is, it doesn't respect the temporal nature of the input tokens. The lack of dependence on token order becomes a major limitation when we consider sequential data, because the representation learned by a transformer will be independent of the input token ordering.
+
+For example
+
+* The two sentences 'The food was bad, not good at all.' and 'The food was good, not bad at all.' contain the same tokens, so the learned representation of each token in these two sentences will be exactly the same. But they have very different meanings because of the different token ordering. In fact, we can permutate these words into 8! ways, all of which gives us the same updated representations.
+
+* In the given time series, the second and the fifth data points are equal to 2.5. But the second 2.5 is on an upward path, and the fifth 2.5 is on a downward path. These are represented by the same vector, but must be handled differently.
+
+image::.\images\pos_encoding_01.png[align='center']
+
+Clearly token order is crucial for most sequential processing tasks, so we need to find a way to inject token order information (relative or absolute position of the tokens in the sequence) into the network.
+
+In the Seq2Seq model, this data is processed sequentially, one by one. The second 2.5 follows 1.2 and the fifth 2.5 follows 2.9. Therefore, the Seq2Seq model can distinguish between these two. However, in the Transformer, these two will not be distinguished because this data is processed simultaneously in parallel. To solve this problem, the authors of this model added "positional encodings" to the input embeddings at the bottoms of the encoder and decoder stacks.
+
+== Fixed Positional Encoding ==
+We construct a position encoding vector stem:[\mathbf{r}_n] associated with each input position stem:[n] and then combine this with the associated input token embedding stem:[\mathbf{x}_n]. We can simply add the position vectors onto the token vectors to give
+
+[stem]
+++++
+\tilde{\mathbf{x}}_n = \mathbf{x}_n + \mathbf{r}_n
+++++
+
+This requires that the positional encoding vectors have the same dimensionality as the token-embedding vectors. But wouldn't adding a number corrupt the data?
+
+However, some intuition as to why this can work well comes from noting that two randomly chosen uncorrelated vectors tend to be nearly orthogonal in spaces of high dimensionality, indicating that the data components will not be disturbed much. We also limit the magnitude of stem:[\mathbf{r}_n] so that it doesn't contaminate the data.
+
+In the time-series example above, say the size `d_model` or stem:[D_k] or stem:[D] of the vector is 8. Since the second and fifth data points are identical, their embedding vectors will also be identical. If positional encodings are added, these two will be different.
+
+The next task is to construct the position encoding vectors stem:[\{\mathbf{r}_n\}]. There are many choices of positional encodings. A simple approach would be to associate an integer stem:[1,2,\dots] with each position.
+
+[stem]
+++++
+\mathbf{X} = \begin{bmatrix}
+0 & 0 & \dots & 0 \\
+1 & 1 & \dots & 1 \\
+2 & 2 & \dots & 2 \\
+\vdots & \vdots & \vdots & \vdots \\
+\end{bmatrix}
+++++
+
+However, this has the problem that the magnitude of the value increases without bound and therefore may start to corrupt the embedding vector significantly. Therefore, we cannot simply use sequentially increasing numbers as positional encoding. Also it may not generalize well to new input sequences that are longer than those used in training, since these will involve coding values that lie outside the range of those used in training.
+
+We need a way to represent unique positional information while minimizing the impact on the original data. One such method is to use sine and cosine functions of different frequencies. For a given position stem:[n] (e.g., time step or word in a sequence), the associated position-encoding vector has components stem:[r_{ni}] given by :
+
+[stem]
+++++
+\begin{align*}
+r_{ni} = \begin{cases}
+        \sin \left( \frac{n}{L^{i/D}} \right) & \text{if } i \text{ is even}\\
+        \cos \left( \frac{n}{L^{(i-1)/D}} \right) & \text{if } i \text{ is odd}\\
+    \end{cases}
+\end{align*}
+++++
+
+where
+
+* stem:[L] represents a very high number, say 10000. Or, it can be the number of words in the text, i.e., the maximum value of stem:[n].
+* stem:[r_{ni}] represents the stem:[i]th component of the position encoding vector for position stem:[n]. Here stem:[i] denotes the dimension index within the positional encoding vector.
+
+** Even indices stem:[(i=0,2,4,\dots)] use the sine function.
+** Odd indices stem:[(i=1,3,5,\dots)] use the cosine function.
+
+image::.\images\pos_encoding_03.png[align='center', 300, 500]
+
+NOTE: The values of the vector elements for two positions stem:[n] and stem:[m] are shown by the intersections of the sine and cosine curves with the horizontal grey lines.
+
+Each dimension of the positional encoding vector corresponds to a sinusoid, ie., the elements of stem:[\mathbf{r}_n] are given by a series of sine and cosine functions of steadily increasing wavelength. The term stem:[L^{i/D}] controls the frequency of oscillation in different dimensions.
+
+image::.\images\pos_encoding_02.png[align='center']
+
+TIP: We add the position encoding to the encoder inputs at every encoding stage (at every encoder block).
+
+* This encoding has the property that the elements of the vector stem:[\mathbf{r}_n] all lie in the range stem:[(-1,1)].
+* These stem:[\mathbf{r}_n] (each row in the position encoding matrix) are all uniformly spaced and non-overlapping.
+
+* Often it is not important to understand exactly where each word occurred in the text, i.e., the absolute positions of the words. Rather, the offset between two words may be important to encode better meaning. The sinusoidal position encoding also has the ability to encode the relative position. For any fixed offset stem:[k], the encoding at position stem:[n+k] can be represented as a linear combination of the encoding at position stem:[n], i.e.,  we can get stem:[\mathbf{r}_{n+k} = \mathbf{T}_k \mathbf{r}_n] where stem:[\mathbf{T}_k] is a matrix which is a function of only stem:[k]. For example, stem:[\mathbf{r}_{10 + 5} = \mathbf{T}_5 \mathbf{r}_{10}] and stem:[\mathbf{r}_{20 + 5} = \mathbf{T}_5 \mathbf{r}_{20}].
++
+The network should therefore be able to understand relative positions (offset between the words) and encode the words better.
+
+== Learned Position Encoding ==
+Another popular approach to positional representation is to use learned position encodings. This is done by having a vector of weights at each token position that can be learned jointly with the rest of the model parameters during training. However, this approach does not
+meet the criteria of generalizing to longer input sequences, as the encoding will be untrained for positional encodings not seen during training. Therefore, this approach is generally most suitable when the input length is relatively constant during both training and inference.
+
+
+
+
+
+
+

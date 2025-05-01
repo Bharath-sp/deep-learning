@@ -1,0 +1,311 @@
+= Skip-gram Model =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+The Word2Vec algorithm arranges words such that the distance between them reflects their similarity, i.e., grouping items together based on how similar they are. Isn't it similar to clustering? No, it is not.
+
+* In clustering, we start with a dataset that *already* has some hidden structure or groupings to it. The job of a clustering algorithm is to uncover than structure. Clustering finds groupings that already exist in the data.
+* In Word2Vec, we start with completely disorganized dataset. The words are all random noise. As we run the Word2Vec algorithm, the words are organized based on their similarity.
+
+The main principle behind Word2Vec is the idea that we can learn the meaning of a word by looking at its surrounding words. For example, in the below sentences:
+
+* .. the sofa cushion tends to slide around ...
+* ... and a 3 cushion couch tucked near the window ...
+
+Here the word `cushion` often appears near to the word `sofa` and to the word `couch`. The word 'cushion' is a context word that 'sofa' and 'couch' have in common. Then, the Word2Vec is able to learn that couch and sofa must have similar meanings, because they have very similar contexts.
+
+ Similar words have similar contexts.
+
+The model that we are going to use to train word vectors is the skip-gram. It is actually a "fake-task" model. We train a simple model to perform a certain task, but we don't use the model for the task it is trained on. We train the model on a fake task, use a by-product (word vectors) from that, and then we disgard the rest of the model.
+
+== Learning Word Vectors ==
+Our input is a lot of text data. We have to build representations for the words in the vocabulary. Word2Vec Embeddings is a prediction-based (learning-based) model for word embeddings. There are two variations of Word2Vec representations:
+
+* Predict the words from the contexts. Given the context, we predict the missing central word. This is called Continuous Bag Of Words (CBOW).
+* Predict contexts from words. Given the central word, we predict the context words. This is called skip-gram.
+
+image::.\images\word2vec_01.png[align='center', 600, 300]
+
+== Skip-gram Model ==
+In skip-gram, we learn word embeddings by teaching the given word vector to predict contexts. That is, the Skip-gram model is trained to predict the context words given a central word. This can be achieved by maximizing the probability of context words stem:[w_{t-m}, \dots, w_{t-1}, w_{t+1}, \dots, w_{t+m}] given a word at position stem:[w_t]. This way, we make each word vector "know" about the contexts of its word, i.e., we capture the context in their embedding.
+
+Mathematically, skip-gram maximizes:
+
+[stem]
+++++
+\max P( w_{t-m}, \dots, w_{t-1}, w_{t+1}, \dots, w_{t+m} \, | \, w_t)
+++++
+
+On assuming independence between context words, this reduces to
+
+[stem]
+++++
+\max \prod_{-m \leq j \leq m , j \ne 0} P( w_{t+j} \, | \, w_t)
+++++
+
+where stem:[m] is the context window size. Word2Vec is an iterative method. Its main idea is as follows:
+
+. Take a huge text corpus. Suppose there are stem:[T] words in the corpus. We start with random initilization of the word embeddings.
+. Go over the text with a sliding window of size stem:[m], moving one word at a time. At each step, there is a central word stem:[w_t] and context words stem:[w_{t-m}, \dots, w_{t-1}, w_{t+1}, \dots, w_{t+m}] (other words in this window). With stem:[m=2]
++
+image::.\images\skip_gram_02.png[align='center', 500, 300]
++
+The word embeddings are learnable parameters stem:[\boldsymbol{\theta}].
+. For the given central word stem:[w_t], compute probabilities of all other words stem:[w_i] in the vocabulary, stem:[P(w_i \, | \, w_t, \boldsymbol{\theta})], where stem:[i=1, \dots, V] and stem:[V] is the number of words in the vocabulary. The skip-gram model gives us this probability.
+. Adjust the parameter vectors stem:[\boldsymbol{\theta}] to increase the probability of actual context words and decrease the probability of non-context words (for a given central word).
+
+=== Objective Function ===
+Let's motivate the derivation of the objective function with a simple example. Let's consider a tiny corpus:
+
+ "The cat sat on the mat"
+
+We define a window size stem:[m=1], meaning each word will predict its immediate neighbors. So each word (central word) is paired with its context words. Thus, we generate the below training pairs:
+
+image::.\images\skip_gram_03.png[align='center', 500, 300]
+
+We can draw parallels from multi-class classification problem. In a typical multi-class classification, given a dataset:
+
+image::.\images\multiclass_data.png[align='center', 200, 200]
+
+We model the conditional distribution of the target variable stem:[T_n] given stem:[x_n] as a categorical distribution with stem:[C] classes. The probability of stem:[T_n = k] given stem:[x_n] is given by
+
+[stem]
+++++
+P(T_n = k \, | \, x_n, \boldsymbol{\theta}) =  \frac{\text{exp}(\mathbf{w}_k^\top x_n + b_k)}{\sum_{k=0}^{C-1} \text{exp}(\mathbf{w}_k^\top x_n + b_k)}
+++++
+
+The likelihood function of all the data points is given as
+
+[stem]
+++++
+L(\boldsymbol{\theta}) =  \prod_{n=1}^N P(T_n = t_n \, | \, x_n, \boldsymbol{\theta})
+++++
+
+Then we tune stem:[\boldsymbol{\theta}] to obtain stem:[\boldsymbol{\theta}^*] that makes the given data as likely as possible. Similarly in our case, we can define the likelihood of our training pairs (assuming we have stem:[N] data points in the data set above) as:
+
+[stem]
+++++
+L(\boldsymbol{\theta}) =  \prod_{n=1}^N P(w_{ni} \, | \, w_{nt}; \boldsymbol{\theta})
+++++
+
+where stem:[w_{ni}] is the context word and stem:[w_{nt}] is the central word in the stem:[n]th observation. We tune stem:[\boldsymbol{\theta}] such that the above dataset is as likely as possible. But did we create this dataset?
+
+For each position stem:[t=1, \dots, T] in a text corpus, we want Word2Vec to predict context words within a stem:[m]-sized window given the central word stem:[w_t]. This can be captured in the likelihood function:
+
+[stem]
+++++
+L(\boldsymbol{\theta}) = \prod_{t=1}^T \prod_{-m\le j \le m, j\neq 0}P({w_{t+j}}|{w_t}; \boldsymbol{\theta})
+++++
+
+This agrees with our plan above: go over text with a sliding window and compute probabilities. The objective function (aka loss function or cost function) stem:[J(\boldsymbol{\theta})] is the average negative log-likelihood:
+
+[stem, id='eq_1']
+++++
+\begin{align}
+J(\boldsymbol{\theta}) = - \frac{1}{T} \log L(\boldsymbol{\theta}) = - \frac{1}{T} \sum_{t=1}^T \sum_{-m\le j \le m, j\neq 0} \log P({w_{t+j}}|{w_t}; \boldsymbol{\theta})
+\end{align}
+++++
+
+But how to compute these probabilities?
+
+=== Computing the Probabilities ===
+For a given central word, the skip-gram model models the probability distribution over the entire vocabulary. The skip-gram model consists of:
+
+* *Input Layer:*
++
+Say the word at position stem:[t] in the corpus is considered as the central word. The central word stem:[c = w_t] is represented as a one-hot vector stem:[\mathbf{x}] of size stem:[V].
+
+* *Hidden Layer:*
++
+A weight matrix (input embedding matrix) stem:[\mathbf{W}_{V \times d}] to transform the input stem:[\mathbf{x}] into a lower-dimensional vector stem:[\mathbf{v}_c] of size stem:[d].
++
+[stem]
+++++
+\mathbf{v}_c = \mathbf{W}^\top \mathbf{x} =
+\begin{bmatrix}
+v_1 \\
+v_2  \\
+\dots \\
+v_d 
+\end{bmatrix}
+++++
++
+Each row in stem:[\mathbf{W}] is the input embedding of a word. Therefore, each column in stem:[\mathbf{W}^\top] is the input embedding of a word. Since stem:[\mathbf{x}] has 1 only on one of the entries, in the matrix-vector multiplication, we pick a corresponding column from the matrix stem:[\mathbf{W}^\top]. This gives us stem:[\mathbf{v}_c] which is the vector representation of the central word stem:[c].
+
+* *Output Layer:*
++
+A weight matrix (output /context embedding matrix) stem:[\mathbf{U}_{d \times V}] to compute the similarity score of each word stem:[w_1, w_2, \dots, w_V] in the vocabulary for the given central word stem:[w_t]. Each column of this matrix stem:[\mathbf{u}_{wi}] is the context vector (or output embedding) of word stem:[w_i] for stem:[i=1,2,\dots, V]. We do
++
+[stem]
+++++
+\mathbf{s} = \mathbf{U}^T \mathbf{v}_c = 
+\begin{bmatrix}
+\mathbf{u}^\top_{w1} \mathbf{v}_c \\
+\mathbf{u}^\top_{w2} \mathbf{v}_c  \\
+\dots \\
+\mathbf{u}^\top_{wV} \mathbf{v}_c
+\end{bmatrix} = 
+\begin{bmatrix}
+s_{w1} \\
+s_{w2}  \\
+\dots \\
+s_{wV}
+\end{bmatrix}
+++++
++
+stem:[s_{wi}] is the unnormalized similarity score between the central word stem:[c] and word stem:[w_i] in the vocabulary. The dot-product gives the similarity between two vectors.
++
+A softmax function is then applied that produces a probability distribution over the vocabulary. This gives us a probability vector stem:[\hat{\mathbf{y}} = [\hat{y}_{w1}, \dots, \hat{y}_{wV}\]], where each element determines the probability of word stem:[w_i] being in the context of the central word stem:[w_t]:
++
+[stem]
+++++
+\hat{y}_{wi} = P(w_i \, | \, w_t; \boldsymbol{\theta}) = \frac{\text{exp}(s_{wi})}{\sum_{w \in \text{Voc}} \text{exp}(s_{w})} = \frac{\text{exp}(\mathbf{u}^\top_{wi} \mathbf{v}_c)}{\sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_{w} \mathbf{v}_c)}
+++++
+
+image::.\images\skip_gram_01.png[align='center', 800, 400]
+
+For each word stem:[w] in the vocabulary, we have two vectors: stem:[\mathbf{v}_w] when it is a central word and stem:[\mathbf{u}_w] when it is a context word. Thus, in the whole skip-gram model, the matrix stem:[\mathbf{W}] and stem:[\mathbf{U}] are learnable parameters. We often define the set of all parameters in a model in terms of one long vector stem:[\boldsymbol{\theta}]. In our case, we have d-dimensional vectors and stem:[V] many words.
+
+[stem]
+++++
+\boldsymbol{\theta} = \begin{bmatrix}
+v_{\text{aardvark}} \\
+v_{a} \\
+\vdots \\
+v_{\text{zebra}} \\
+u_{\text{aardvark}} \\
+u_{a} \\
+\vdots \\
+u_{\text{zebra}} \\
+\end{bmatrix} \in \mathbb{R}^{2dV}
+++++
+
+We then optimize these parameters.
+
+We can observe that <<eq_1, Equation 1>> is the cross-entropy loss function.
+
+* Given a central word stem:[w_t], the skip-gram model outputs a probability vector of size stem:[V] with each element representing the similarity score between the central word stem:[w_t] and a word stem:[w_i] in the vocabulary. Say stem:[\hat{\mathbf{y}} = \{0.2, 0.4, 0.1, 0.1, \dots, 0.0\}].
+* Given a central word stem:[w_t], we want the model to predict a context word, say stem:[w_i]. The target vector is a one-hot encoded vector with 1 only in the stem:[i]th element, stem:[\mathbf{y} = \{0,0,1,0,\dots,0\}].
+
+Given the prediction stem:[\hat{\mathbf{y}}] and the ground truth stem:[\mathbf{y}] (each of size stem:[V]), the cross-entropy loss is given by
+
+[stem]
+++++
+L = - \sum_{k=1}^V y_{wk} \log \hat{y}_{wk} = - \log \hat{y}_{wi}
+++++
+
+as stem:[y_{wk} = 1] only for the stem:[i]th element and 0 for all other elements. This defines the loss.
+
+* If the model assigns a high probability to this context word, i.e., stem:[\hat{y}_{wi} = 0.8], the loss is low stem:[(L = - \log 0.8 \approx 0.22)].
+* If the model assigns a low probability to this context word, i.e., stem:[\hat{y}_{wi} = 0.1], the loss is high stem:[(L = - \log 0.1 \approx 2.33)].
+
+Similarly, we can compute the loss associated with the other context words for the given central word. Then, we slide over to the next central word and repeat the process. The total loss is
+
+[stem]
+++++
+J(\boldsymbol{\theta}) = - \frac{1}{T} \log L(\boldsymbol{\theta}) = - \frac{1}{T} \sum_{t=1}^T \sum_{-m\le j \le m, j\neq 0} \log P({w_{t+j}}|{w_t}; \boldsymbol{\theta})
+++++
+
+Our objective is to minimize this loss, i.e., we should optimize the parameters stem:[\boldsymbol{\theta}] of the model such that we get high probabilities for all the actual context words given a central word, stem:[P({w_{t+j}}|{w_t})]. The probabilities of other non-context words for a given central word are decreased automatically (since probabilities must sum to 1).
+
+=== How to Train ===
+The parameters stem:[\boldsymbol{\theta}] are stem:[\mathbf{v}_w] and stem:[\mathbf{u}_w] for all the word stem:[w] in the vocabulary. These vectors are learned by optimizing the objective function via gradient descent:
+
+[stem]
+++++
+\boldsymbol{\theta}^{new} = \boldsymbol{\theta}^{old} - \alpha \nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}).
+++++
+
+We have stem:[2*d*V] parameters in total. The loss function is:
+
+[stem]
+++++
+J(\boldsymbol{\theta}) = - \frac{1}{T} \sum_{t=1}^T \sum_{-m\le j \le m, j\neq 0} \log P({w_{t+j}}|{w_t}; \boldsymbol{\theta})
+++++
+
+This is the total loss that we get by sliding over all the text in the corpus. Let's just look at the loss for a given central word stem:[c] and one of its context words stem:[o].
+
+[stem]
+++++
+\begin{align*}
+J_{c,o}(\boldsymbol{\theta}) & = -  \log P(c \, | \, o) \\
+
+& = - \log \frac{\text{exp}(\mathbf{u}^\top_o \mathbf{v}_c)}{\sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_w \mathbf{v}_c)} \\
+
+& = - \log \text{exp}(\mathbf{u}^\top_o \mathbf{v}_c) + \log \sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_w \mathbf{v}_c) \\
+& = - \mathbf{u}^\top_o \mathbf{v}_c + \log \sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_w \mathbf{v}_c) \\
+\end{align*}
+++++
+
+Let's try to optimize the parameters stem:[\boldsymbol{\theta}] to minimize this loss. The parameters here are the word embeddings for the central word stem:[\mathbf{v}_c] and the output embeddings for all the words in the vocabulary stem:[\mathbf{u}_w], where stem:[w \in \text{Voc}].
+
+Let's find stem:[\frac{\partial J_{c,o}}{\partial \mathbf{v}_c}]: How the loss changes for a small change in the vector stem:[\mathbf{v}_c].
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial J_{c,o}(\boldsymbol{\theta})}{\partial \mathbf{v}_c} & = \frac{\partial}{\partial \mathbf{v}_c} \left( - \mathbf{u}^\top_o \mathbf{v}_c + \log \sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_w \mathbf{v}_c) \right) \\
+
+& = - \mathbf{u}_o + \frac{\partial}{\partial \mathbf{v}_c} \log \sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_w \mathbf{v}_c) 
+\end{align*}
+++++
+
+Looking at the second term in this:
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial}{\partial \mathbf{v}_c} \log \sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_w \mathbf{v}_c)  & = 
+\frac{1}{\sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_w \mathbf{v}_c)} \frac{\partial}{\partial \mathbf{v}_c} \sum_{w' \in \text{Voc}} \text{exp}(\mathbf{u}^\top_{w'} \mathbf{v}_c) \\
+
+& = 
+\frac{1}{\sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_o \mathbf{v}_c)}  \left[ \sum_{w' \in \text{Voc}} \frac{\partial}{\partial \mathbf{v}_c} \text{exp}(\mathbf{u}^\top_{w'} \mathbf{v}_c) \right] \\
+
+& = 
+\frac{1}{\sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_o \mathbf{v}_c)}  \left[ \sum_{w' \in \text{Voc}} \text{exp}(\mathbf{u}^\top_{w'} \mathbf{v}_c) \cdot \frac{\partial}{\partial \mathbf{v}_c} \mathbf{u}^\top_{w'} \mathbf{v}_c \right] \\
+
+& = 
+\frac{1}{\sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_o \mathbf{v}_c)}  \left[ \sum_{w' \in \text{Voc}} \text{exp}(\mathbf{u}^\top_{w'} \mathbf{v}_c) \cdot \mathbf{u}_{w'} \right] \\
+\\
+& = \sum_{w' \in \text{Voc}} \frac{\text{exp}(\mathbf{u}^\top_{w'} \mathbf{v}_c) }{\sum_{w \in \text{Voc}} \text{exp}(\mathbf{u}^\top_w \mathbf{v}_c)} \cdot \mathbf{u}_{w'} = \sum_{w' \in \text{Voc}} P(w' \, | \, c) \cdot {u}_{w'}
+\end{align*} 
+++++
+
+Combining all the results, we get
+
+[stem]
+++++
+\frac{\partial J_{c,o}}{\partial \mathbf{v}_c} = \sum_{w \in \text{Voc}} P(w \, | \, c) \cdot \mathbf{u}_w - \mathbf{u}_o
+++++
+
+Similarly, for each output embedding stem:[\mathbf{u}_w]:
+
+[stem]
+++++
+\frac{\partial J_{c,o}}{\partial \mathbf{u}_w} = (P(w \, | \, c) - \mathbf{1}(w = o)) \cdot \mathbf{v}_c
+++++
+
+* stem:[\mathbf{1}(w = o)] is 1 if stem:[w] is the true context word, otherwise 0.
+* stem:[P(w \, | \, c)] is the predicted probability.
+
+Having got the gradients, we update the parameters using stochastic gradient descent (SGD):
+
+[stem]
+++++
+\begin{align*}
+\mathbf{v}_t & \leftarrow \mathbf{v}_t - \eta \frac{\partial J}{\partial \mathbf{v}_t} \\
+\mathbf{u}_w & \leftarrow \mathbf{u}_w - \eta \frac{\partial J}{\partial \mathbf{u}_w} \text{ for all } w \in \text{Voc}\\
+\end{align*} 
+++++
+
+In total, for a single pair of a center word and one of its context words, we make stem:[V+1] updates. By making an update, we force the parameters to increase similarity (dot product) of stem:[\mathbf{v}_c] and stem:[\mathbf{u}_o] and, at the same time, to decrease similarity between stem:[\mathbf{v}_c] and stem:[\mathbf{u}_w] for all other words in the vocabulary.
+
+TIP: This may sound a bit strange: why do we want to decrease similarity between stem:[\mathbf{v}_c] and all other words, if some of them are also valid context words? But do not worry: since we make updates for each context word (and for all central words in the text), on average over all updates our vectors will learn the distribution of the possible contexts.
+
+
+
+
+

@@ -1,0 +1,40 @@
+= GAN Implementation =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Generating 2D Data ==
+Let's see how a GAN model can be used for generating 2D data. The real data is a two-dimensional data, consisting of 3 clusters. Each cluster is represented by a separate Gaussian distribution. This distribution is stem:[p_{\text{data}}] and the real data stem:[\mathbf{x}] comes from this distribution. stem:[\mathbf{x}] is input into the discriminator network.
+
+Suppose that stem:[p_{\mathbf{Z}}] is an stem:[n-] dimensional Gaussian distribution. The random noise stem:[\mathbf{z}] comes from this distribution. stem:[\mathbf{z}] is input into the generator network. The generator outputs stem:[G(\mathbf{z})]. This is passed as input into the discriminator network. The discriminator tries to output 1 for the real data and 0 for the fake data. This is because of the loss function that we have considered.
+
+In the initial stage, the distribution of stem:[\mathbf{x}] and stem:[G(\mathbf{z})] (right after the Generator block) will be very different. As the GAN is trained, the distribution of stem:[\mathbf{x}] and stem:[G(\mathbf{z})] becomes more similar. After the model is trained sucessfully, the distributions becomes more similar. The outputs of the disciminator, stem:[D(\mathbf{x})] and stem:[D(G(\mathbf{z}))], are both 0.5.
+
+image::.\images\standard_gan_05.png[align='center']
+
+After training, we can just use the generator to generate an infinite amount of data similar to the distribution of stem:[\mathbf{x}].
+
+== Mode Collapse ==
+The phenomenon where a generator fails to produce a wide range of outputs, but instead produces only a limited set of data patterns, is called mode collapse. That is, the generator is stuck in a particular mode and cannot produce a variety of outputs that cover the full range of data.
+
+image::.\images\mode_collapse_gan.png[align='center']
+
+Say our real data has multiple modes. The blue dots are real data and the red dots are fake data. In this case, the generator has become very good at generating data of a specific pattern (of a specific mode), but cannot produce data of other patterns.
+
+This problem occurs because we are not encouraging the generator to explore the real distribution. That is, the GAN's objective doesn't compare stem:[p_{\text{data}}] and stem:[p_g] and we are not trying to make stem:[p_g] similar to stem:[p_{\text{data}}].
+
+*Mode Hopping:*
+
+At epoch 200, the generator is producing a dataset of a specific pattern. And at epoch 400, it is producing a dataset of another pattern. When a mode collapse occurs, the discriminator increases the second term of the loss, for the data generated in that mode. The generator tries to generate data in another mode to avoid increasing the second term of the loss. This is called mode hopping phenomenon.
+
+Training instability, such as mode collapse and mode hopping, is a fundamental problem faced by standard GANs. To address this problem, many variants of GAN have been developed, such as unrolled GAN, LS-GAN, and Wasserstein GAN.
+
+
+
+
+
+
+
+
+

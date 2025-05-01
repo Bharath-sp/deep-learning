@@ -1,0 +1,44 @@
+= AE for Dimensionality Reduction =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Dimensionality Reduction ==
+Dimensionality reduction is a method to transform a high-dimensional feature space into a low-dimensional feature space while capturing as many important features of the original data as possible.
+
+Let's consider encoding MNIST images into k-dimensional vectors and then decoding them into the original images.
+
+image::.\images\ae_dim_red.png[align='center']
+
+The encoder and decoder can be composed of fully connected networks, CNN, LSTMs, etc. The parameters of the encoder and decoder are updated so as to minimize the reconstruction error via backpropagation. Let's build an autoencoder with multi-layered fully-connected networks. The stem:[\mathbf{z}-] space is of two dimensions, i.e., the number of neurons in the output layer of the encoder is 2.
+
+image::.\images\ae_dim_red_02.png[align='center']
+
+In the stem:[\mathbf{z}-] space, similar images will be clustered together. Once training is complete, we can obtain the latent vectors of the test image using only the encoder.
+
+=== Using CNN-Autoencoder Model ===
+Let's create an autoencoder model consisting of convolutional layers and use this model to reduce the dimensionality of the input images.
+
+The encoder consists of 2D convolutional layers, and the decoder consists of 2D transposed convolutional layers. The example below is a model that reduces a 28 by 28 image to a 14 by 14 image.
+
+image::.\images\ae_dim_red_03.png[align='center']
+
+The transposed convolutional layer is an upsampling layer that produces feature maps that are larger than the input feature map.
+
+image::.\images\ae_dim_red_04.png[align='center']
+
+image::.\images\ae_dim_red_05.png[align='center']
+
+
+
+
+
+
+
+
+
+
+
+
+

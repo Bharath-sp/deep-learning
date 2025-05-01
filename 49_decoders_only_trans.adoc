@@ -1,0 +1,102 @@
+= Decoder Transformers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Transformer Language Models ==
+In this section we explore the application of transformers to natural language. Transformers can be applied to many different kinds of language processing task, and can be grouped into three categories according to the form of the input and output data. They are:
+
+* Encoder only transformers: Input is a sequence of words and output is a single vector representing a word. For example, in sentiment analysis, we take a sequence of words as input and provide a single variable representing the sentiment of the text (happy or sad) as output. Here a transformer is acting as an 'encoder' of the sequence.
+
+* Decoder only transformers: Input is a single word and the output is a sequence of words. For example, if we wish to generate a text caption given an input image. In such cases the transformer functions as a 'decoder', generating a sequence as output.
+
+* Encoder-Decoder transformers: Both the input and the output comprise a sequence of words. Used in sequence-to-sequence processing tasks. For example, if our goal is to translate from one language to another. In this case, transformers are used in both encoder and decoder roles.
+
+== Decoder Transformers ==
+Decoder Transformers can be used as 'generative models' that create sequences of tokens. As an illustrative example, we will focus on a class of models called GPT which stands for generative pretrained transformer. Here we use the transformer architecture to construct an autoregressive model of the form
+
+[stem]
+++++
+p(\mathbf{x}_1, \dots, \mathbf{x}_N) = \prod_{n=1}^N p(\mathbf{x}_n \, | \, \mathbf{x}_1, \dots, \mathbf{x}_{n-1})
+++++
+
+in which the conditional distributions stem:[p( \mathbf{x}_n \, | \, \mathbf{x}_1, \dots, \mathbf{x}_{n-1})] are expressed using a transformer neural network that is learned from data.
+
+The model takes as input a sequence consisting of the first stem:[n-1] tokens, and its corresponding output represents the conditional distribution for token stem:[n]. If we draw a sample from this distribution then we have extended the sequence to stem:[n] tokens
+and this new sequence can be fed back through the model to give a distribution over token stem:[n + 1], and so on. The process can be repeated till <eos> is predicted.
+
+=== Model Architecture ===
+The architecture of a GPT model consists of a stack of transformer layers (encoder blocks) that take a sequence stem:[\mathbf{x}_1, \dots, \mathbf{x}_N] of tokens, each of dimensionality stem:[D] as input. And produce a sequence stem:[\tilde{\mathbf{x}}_1, \dots, \tilde{\mathbf{x}}_N] of tokens, each of dimensionality stem:[D] as output. These are the updated representations of the input tokens.
+
+At each time step, the output needs to represent a probability distribution over the dictionary of tokens, i.e., over the words in the vocabulary. Say there are stem:[K] tokens in the vocabulary (vocab size), so we need to output a vector of stem:[K] dimensions, each element representing the probability of that word. The updated output tokens stem:[\tilde{\mathbf{x}}_n] have a dimensionality of stem:[D]. We therefore make a linear transformation of each output token stem:[\tilde{\mathbf{x}}_n] using a matrix stem:[\mathbf{W}^{(p)}] of dimensionality stem:[D \times K] followed by a softmax activation function in the form:
+
+[stem]
+++++
+\mathbf{Y} = \text{Softmax} \left( \tilde{\mathbf{X}} \mathbf{W}^{(p)} \right)
+++++
+
+where stem:[\mathbf{Y}] is a stem:[N \times K] matrix, each row represents a probability distribution at that time step.
+
+image::.\images\decoder_trans_01.png[align='center', 600, 500]
+
+=== Model Training ===
+The model can be trained using a large corpus of unlabelled natural language by taking a *self-supervised* approach. Each training sample consists of a sequence of tokens stem:[\mathbf{x}_1, \dots, \mathbf{x}_n], which form the input to the network, along with an associated
+target value stem:[\mathbf{x}_{n+1}], the next token in the sequence. For example, consider the word sequence
+
+ I swam across the river to get to the other bank.
+
+We can use 'I swam across' as an input sequence with an associated target of 'the', and also use 'I swam across the' as an input sequence with an associated target of 'river', and so on.
+
+*Padding Mask:*
+
+In practice, we stack multiple input sequences together into an input tensor for parallel processing. However, this requires the sequences to be of the same length, whereas text sequences naturally have variable length. For example, we may have a training sample with input sequence, 'I swam across', which has three tokens. And in another sample, we may have 5 tokens, and so on. The sequence length stem:[N] can be different for each sequence.
+
+This can be addressed by introducing a specific token, which we denote by <pad>, that is used to fill unused positions to bring all sequences up to the same length so that they can be combined into a single tensor. Say we set our max sequence length to 5. And our input with 3 tokens is padded with two pad tokens.
+
+* input = [I, am, AI] stem:[\to] stem:[[29, 15, 8, 0, 0\]]. These numbers are token IDs.
+
+When computing attention values, attention is required only between the actual tokens. No attention is required between the actual tokens and the padded tokens. To address this, an additional mask is then used in the attention weights to ensure that the output vectors do not pay attention to any inputs occupied by the pad token.
+
+For this particular sample, the padding mask vector is: stem:[[0,0,0,1,1\]]. This mask depends on the particular input sequence. Then, in the attention process, we add the values in the padding mask multiplied by stem:[-\infty] to the scaled dot-product result (with the help of broadcasting).
+
+image::.\images\decoder_trans_02.png[align='center', 400, 300]
+
+In the resulting matrix, the columns are the key side and the rows are the queries side. We can see that the degree of importance the query tokens assign to the padded key tokens is 0.
+
+*Look-ahead Mask:*
+
+In processing a sequence, we also have to ensure that the model is not able to 'cheat' by looking ahead in the sequence, otherwise it will simply learn to copy the next token directly to the output. To address this problem we do two things.
+
+* First, we shift the input sequence to the right by one step, so that input stem:[\mathbf{x}_n] corresponds to output stem:[\mathbf{y}_{n+1}], with target stem:[\mathbf{x}_{n+1}], and an additional special token denoted <start> is prepended in the first position of the input sequence.
+
+* Second, we introduce masked attention, sometimes called causal attention, into each of the attention layers. When we make prediction at the stem:[n]the time step, we want to rely only on the previous tokens stem:[\mathbf{x}_1, \dots, \mathbf{x}_{n-1}] and not on the future tokens.
++
+A look-ahead mask (also called a causal mask) can be created to ensure that at timestep stem:[t], a token can only attend to itself and previous tokens, preventing it from seeing the future tokens.
++
+image::.\images\decoder_trans_03.png[align='center', 300, 300]
++
+The mask is typically a square matrix filled with 1 and 0s. A 0 means the token at that position can be attended to. A 1 means that the token at that position is masked and cannot be attended to. Each row corresponds to a query token. The first query token can attend only to itself. The third query token can attend to token 1, 2 and 3 but not 4,5. Then, in the attention process, we add the values in the padding mask multiplied by stem:[-\infty] to the scaled dot-product result.
++
+image::.\images\decoder_trans_04.png[align='center', 300, 500]
++
+The resulting attention weight matrix shows:
++
+** Rows (Query side): Each row corresponds to a query token, represents how this token attends to all other tokens (including itself).
+** Columns (Key side): Each column represents the extent to which a key token contributes to the attention score of a given query.
+
+=== Inference ===
+The output of the trained model is a probability distribution over the space of vocabulary tokens, given by the softmax output activation function, which represents the probability of the next token given the current token sequence. Once this next word is chosen, the token sequence with the new token included can then be fed through the model again to generate the subsequent token in the sequence, and this process can be repeated indefinitely or until an end-of-sequence token is generated.
+
+== Large Language Models ==
+A language model with billions of parameters and pre-trained on large datasets. A foundational model is a model with broad capabilities that can be subsequently fine-tuned for specific tasks with small amount of labelled training data.
+
+An efficient approach to fine-tuning is called low-rank adaptation (LoRA). Once we have a pre-trained model, we don't have to change a lot of parameters during fine-tuning. We just need to adapt a subset of parameters to suit the task at hand.
+
+
+
+
+
+
+
+

@@ -1,0 +1,52 @@
+= Decoders in Transformers =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Masked Multi-Head Attention ==
+The same input stem:[\mathbf{X}] after adding the positional encoding is fed as the input to the decoder (during the training stage). The multi-head attention process in the decoder is the same as that in the encoder, but a masked process is added.
+
+In the Seq2Seq model, data points are processed sequentially. If we are currently processing stem:[t3], we can compute the dot-product of stem:[t1] and stem:[t2], and the dot-product of stem:[t1] and stem:[t3]. But we can't compute the dot-product of stem:[t1] and stem:[t4] because we don't know stem:[t4] yet.
+
+However, the transformer processes in parallel, so the dot-product all at once. Therefore, we need to use a look-ahead mask to avoid computing the dot-product of the current and future data points. We create a look-ahead mask matrix, multiply it by stem:[-\infty], and then add it to the scaled dot-product result. And then apply softmax to the result.
+
+image::.\images\trans_decoder_01.png[align='center', 700]
+
+The lower triangular matrix becomes the attenion score. The process of obtaining the multi-head attention value using these weights is identical to that of the encoder. This is the masked multi-head attention mechanism in the decoder.
+
+The output from this block, i.e., the multi-head attention value is then passed to the 'add and normalize' layer which is the same as that of the encoder. The output stem:[\tilde{\mathbf{X}}] will be of the same size as the input stem:[N \times D].
+
+== Multi-Head Cross-Attention ==
+This layer allows the decoder to focus on relevant parts of the encoder output and update the representation of the words at the decoder side. In this layer, the encoder output stem:[\mathbf{E}_{N \times D}] is linearly projected using weight matrices to form the key and value matrices. The query matrix is computed from the decoder's input representation stem:[\tilde{\mathbf{X}}].
+
+[stem]
+++++
+\begin{align*}
+\mathbf{K} & = \mathbf{EW}_h^{(k)} \\
+\mathbf{V} & = \mathbf{EW}_h^{(v)} \\
+\mathbf{Q} & = \tilde{\mathbf{X}} \mathbf{W}_h^{(q)} \\
+\end{align*}
+++++
+
+Then the attention value matrix stem:[\mathbf{H}_h] which is of the size stem:[N \times D_v] from a single head is given as (which is the same that of the encoder):
+
+[stem]
+++++
+\mathbf{H}_h = \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Softmax}\left[ \frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{D_k}} \right] \mathbf{V}
+++++
+
+Multi-head attention value is calculated and the subsequent steps are identical to those of the encoder. In this way, we can get the outputs of the decoder and pass them to the next decoder layer or the output layer.
+
+== Application ==
+The transformer model that we saw combines an encoder and a decoder. This is a sequence-to-sequence transformer architecture. This architecture is useful in the task of machine translation. For example, in the task of translating an English sentence into a Dutch sentence. The model is trained using paired input and output sentences.
+
+
+
+
+
+
+
+
+
+
