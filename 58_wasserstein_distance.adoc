@@ -1,0 +1,143 @@
+= Wasserstein Distance =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+The Wasserstein GAN (WGAN) is one of the GAN variants that improves the stability of the standard GAN. In general, training a GAN model is the process of making the distribution of fake data stem:[p_g] closer to the distribution of real data stem:[p_r]. In other words, this is the process of minimizing the KL divergence or JS divergence between stem:[p_r] and stem:[p_g].
+
+KL divergence is valid when the supports of two distributions are overlapping. The support of a distribution is the set of values that a random variable can take with positive probability. If these distributions are non-overlapping, the KL divergence is not defined, or simply infinite. So in this case, it is difficult to make the distribution stem:[p_g] closer to stem:[p_r]. The typical remedy is to add a noise term to the model distribution stem:[p_g]. But this noise degrades the quality of the generated samples.
+
+To solve this problem, WGAN uses Wasserstein distance instead of divergence. Wasserstein distance is valid when the supports of the two distributions do not overlap at all.
+
+== Types of Distances ==
+There are several ways to measure the distance between two probability distributions.
+
+=== Total Variation (TV) Distance ===
+
+The total variation distance is defined as the largest absolute difference between the probabilities that the two probability distributions assign to the same event stem:[A].
+
+[stem]
+++++
+\delta(p_r, p_g) = \sup_{A \in \mathcal{X}} |p_r(A) - p_g(A)|
+++++
+
+where stem:[p_r(A) = \int_A p_r(\mathbf{x}) \, d\mathbf{x}] is the probability of stem:[\mathbf{x}] lying in a certain range stem:[A] and stem:[\mathcal{X}] is the support of the random variable stem:[X].
+
+.Different cases of distributions stem:[p_r] and stem:[p_g]
+image::.\images\wgan_01.png[align='center', 600, 400]
+
+Suppose the two probability distributions are like the case (1) (the left-most plot) in Figure 1. In that case, the absolute difference between the two probabilities will be maximum when stem:[A] is the red line. The green area denotes the total variation between stem:[p_g] and stem:[p_r]. The more similar stem:[p_g] and stem:[p_r] are, the smaller this distance becomes.
+
+=== KL divergence ===
+
+[stem]
+++++
+KL(p_r \| p_g) = \int_{\mathcal{X}} p_r(\mathbf{x}) \log \left[ \frac{p_r(\mathbf{x})}{p_g(\mathbf{x})} \right] \, d\mathbf{x}
+++++
+
+The KL divergence is asymmetric and possibly infinite when there are points such that stem:[p_g(\mathbf{x})= 0] and stem:[p_r(\mathbf{x})> 0].
+
+=== JS divergence ===
+
+The Jensen-Shannon (JS) divergence between distributions stem:[p_r] and stem:[p_g] is
+
+[stem]
+++++
+\text{JSD} (p_r \| p_g) = \frac{1}{2} \, KL\left(p_r \| \frac{p_r + p_g}{2}\right) +  \frac{1}{2} \, KL\left(p_g \| \frac{p_r + p_g}{2}\right)
+++++
+
+This divergence is symmetrical and always defined. In the standard GAN, the optimal discriminator is stem:[\max_D V(G, D) = D^*(\mathbf{x}) = \frac{p_r(\mathbf{x})}{p_g(\mathbf{x}) + p_r(\mathbf{x})}]. Then, the loss function becomes
+
+[stem]
+++++
+\begin{align*}
+V(D^*, G) & = -\log(4) + JS(p_r \| p_g) \\
+G^* & = \min_G \, V(D^*, G) = \min_G \{-\log(4) + JS(p_r \| p_g)\}
+\end{align*}
+++++
+
+The standard GANs are optimizied by minimizing the JS divergence. There may be problems with using JS divergence when the distributions stem:[p_r] and stem:[p_g] do not overlap at all. Consider the case (2) in Figure 1. For all stem:[x], either stem:[p_r(x) > 0] and stem:[p_g(x)=0] or vice-versa.
+
+* The KL divergence becomes stem:[\infty] as there are points with stem:[p_g = 0] and stem:[p_r > 0].
+
+* The JS divergence is 
++
+[stem]
+++++
+\begin{align*}
+\text{JSD} (p_r \| p_g) & = \frac{1}{2} \, \int_{\mathcal{X}} p_r(\mathbf{x}) \log \left[ 2 \cdot \frac{p_r(\mathbf{x})}{p_r(\mathbf{x})} \right] \, d\mathbf{x} +  \frac{1}{2} \, \int_{\mathcal{X}} p_g(\mathbf{x}) \log \left[ 2 \cdot \frac{p_g(\mathbf{x})}{p_g(\mathbf{x})} \right] \, d\mathbf{x} \\
+& = \frac{1}{2} \log(2) + \frac{1}{2} \log(2) = \log(2) \approx 0.6931
+\end{align*}
+++++
++
+The first term corresponds to those range of stem:[X] where stem:[p_r(x) > 0] and stem:[p_g(x)=0] and the second term corresponds to range of stem:[X] where stem:[p_g(x) > 0] and stem:[p_r(x)=0]. stem:[\log 2] is the maximum possible value of the JS divergence between two distributions.
+
+Consider the case (3) in Figure 1. Even though the two distributions are very far apart, all the distances that we have considered so far are the same as in the case (2). These distance measures do not tell us how far apart the two distributions are.
+
+When the two distributions overlap, the standard GANs work well, but when they are far apart, it is difficult to shift the distribution stem:[p_g] toward stem:[p_r]. To solve this problem, WGAN uses Earth Mover (EM) distance or Wasserstein-1 distance.
+
+=== Wasserstein Distance (WD) ===
+Wasserstein Distance (WD) is one of the ways to measure the distance between two probability distributions. WD is defined as the infimum transport cost from one probability distribution to another.
+
+Suppose we have two discrete distributions stem:[p] and stem:[q] of random variable stem:[X] and stem:[Y] respectively. The support of stem:[p] is stem:[x \in \{0,1,2,3\}] with probabilities stem:[[0.4, 0.3, 0.2, 0.1\]] respectively, and the support of stem:[q] is stem:[y \in \{2,3,4,5\}] with probabilities stem:[[0.1, 0.2, 0.3, 0.4\]] respectively. The distributions overlap in bin numbers 2 and 3.
+
+.Wasserstein distance between two one-dimensional distributions
+image::.\images\wgan_02.png[align='center', 400, 300]
+
+If we think of distribution stem:[p] as piles of dirt and distribution stem:[q] as holes, the Wasserstein distance is defined as the minimum amount of work required to transfer all the dirt in stem:[p] to the holes in stem:[q]. Now, let's move the dirt in stem:[p] little by little into the holes in stem:[q].
+
+* Move 0.1 units of dirt from bin 0 of stem:[p] to bin 2 of stem:[q]: stem:[p(0,0.1) \xrightarrow{2} q(2,0.1)]. The distance the dirt has moved is 2 bins. This distance is the absolute value of stem:[x-y].
+
+* Move 0.2 units of dirt from bin 0 of stem:[p] to bin 3 of stem:[q]: stem:[p(0,0.2) \xrightarrow{3} q(3,0.2)]. The distance the dirt has moved is 3 bins.
+
+* stem:[p(0,0.1) \xrightarrow{4} q(4,0.1)]
+* stem:[p(1,0.2) \xrightarrow{3} q(4,0.2)] and so on.
+
+This way all the dirt in stem:[p] is moved to the holes in stem:[q]. This is one possible transport plan. Let's denote this plan as stem:[\gamma_1]. For this plan, we can compute the weighted average of the distances, with units of dirt moved as the weight for each distance.
+
+We can move the dirt in different ways. For example
+
+[stem]
+++++
+\gamma_2: p(0,0.4) \xrightarrow{5} q(5,0.4), \, p(1,0.2) \xrightarrow{2} q(3,0.2), \dots
+++++
+
+and many other ways stem:[\gamma_3, \gamma_4, \dots]. Let's denote the set of all transport plans as stem:[\pi = \{\gamma_1, \gamma_2, \dots\}]. There can be infinitely many stem:[\gamma]. For each stem:[\gamma], we can compute the weighted average of the distances, with units of dirt moved as the weight for each distance. The smallest one of the weighted average is called the Wasserstein distance.
+
+[stem]
+++++
+W_n(p,q) = \left( \, \inf_{\gamma \in \pi} \,\, \mathbb{E}_{(x,y) \sim \gamma}[d(x,y)^n] \right)^{\frac{1}{n}}
+++++
+
+where stem:[\gamma] is one of the possible plans, or can also be considered as a joint distribution of stem:[p] and stem:[q].
+
+When stem:[n=1], it is known as the Wasserstein-1 distance and it is given by
+
+[stem]
+++++
+\begin{align*}
+W_1(p,q) & = \inf_{\gamma \in \pi} \,\, \mathbb{E}_{(x,y) \sim \gamma}[d(x,y)]\\
+& = \sum_{x,y} \gamma^*(x,y) \odot d(x,y) \\
+\end{align*}
+++++
+
+where stem:[\gamma^*] is the optimal transport plan. It is substituted to find the optimal value of the problem. stem:[\gamma]s can be expressed as a joint distribution of stem:[p] and stem:[q] whose marginals are distributions stem:[p] and stem:[q].
+
+.Wasserstein-1 distance calculation: stem:[\gamma] and distance matrix
+image::.\images\wgan_03.png[align='center', 700, 400]
+
+Intuitively, stem:[\gamma(x,y)] indicates the amount of dirt that must be transported from stem:[x] to stem:[y] in order to transform the distribution stem:[p] into the distribution stem:[q]. The WD distance is then the "cost" of the optimal transport plan.
+
+For one-dimensional distributions, it is optimal to move in order from the front to the back. In our above example, stem:[\gamma_1] is the optimal transport plan as it gives the lowest weighted average distance. So, the WD between stem:[p] and stem:[q] is 3.
+
+CAUTION: Here we looked at the computation of the WD between one-dimensional distributions. It is highly intractable to directly find the Wasserstein distance between high-dimensional distributions.
+
+
+
+
+
+
+
+

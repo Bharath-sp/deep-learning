@@ -1,0 +1,50 @@
+= Sparsemax Function =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Introduction ==
+Sparsemax function is an alternative to the softmax function. Softmax is an appropriate choice for multi-class classification (with stem:[K] classes) that outputs a normalized probability distribution over stem:[K] probabilities. In many tasks, we may want to obtain an output that is more sparse.
+
+Sparsemax function outputs sparse probabilities, filtering out noise from the mass of the distribution. This means that sparsemax would assign a probability of exactly 0 for some classes, while softmax would instead keep those classes and assign them very small values like stem:[10^{-3}].
+
+Changing the softmax function into a sparse estimator is not a straightforward task. Obtaining such a transformation while preserving some of the fundamental properties of softmax - for e.g., simple to evaluate, inexpensive to differentiate and easily transformed to a convex loss function - turns out to be quite challenging. So, the sparsemax function is carefully formulated as a solvable quadratic problem under a set of constraints to get similar properties to softmax.
+
+== Softmax Function ==
+Softmax function stem:[f: \mathbb{R}^K \rightarrow (0,1)^K], where stem:[K>1], takes a vector stem:[\mathbf{z}=(z_1, \dots, z_K)] of real numbers and outputs a probability distribution of stem:[K] possible outcomes. It takes a vector stem:[\mathbf{z}] and applies the standard exponential function to each element stem:[z_i] of stem:[\mathbf{z}], and normalizes these values by dividing by the sum of all these exponentials.
+
+[stem]
+++++
+\text{Softmax}(\mathbf{z})_i = \frac{\text{exp}(z_i)}{\sum_{j=1}^K \text{exp}(z_j) }
+++++
+
+The normalization ensures that the sum of the components of the output vector stem:[\sigma(\mathbf{z})] is 1. For example, the standard softmax of stem:[(1,2,8)] is approximately stem:[(0.001,0.002,0.997)].
+
+Softmax is a function mapping vectors in stem:[\mathbb{R}^K] to a probability distribution in stem:[\Delta^{K-1}], i.e., to the stem:[K-1] dimensional probability simplex.
+
+[stem]
+++++
+\Delta^{K-1} := \{ \mathbf{p} \in \mathbb{R}^K \, | \, \mathbf{1}^\top \mathbf{p} =1, \mathbf{p} \geq \mathbf{0}\}
+++++
+
+It is important to note that only stem:[K-1] degree of liberty are necessary as probabilities always sum up to 1. Softmax is defined to have full support, i.e. non-zero value outputs, stem:[\text{Softmax}(\mathbf{z})_i \ne 0]. Modifying this property to allow for zero outputs is exactly what will enable us to obtain sparse probabilities.
+
+== Sparsemax Function ==
+The sparsemax function is formulated as a quadratically constrained optimization problem:
+
+[stem]
+++++
+\text{Sparsemax}(\mathbf{z}) := \underset{\mathbf{p} \in \Delta^{K-1}}{\arg\min} \|\mathbf{p} - \mathbf{z} \|^2
+++++
+
+This is equivalent to defining it as the Euclidian projection of stem:[\mathbf{z}]​ onto the probability simplex stem:[\Delta^{K-1}]. The sparsity is invoked by the probability of hitting the boundary of the simplex during the projection, and thus making certain dimensions zero.
+
+
+
+
+
+
+
+
+

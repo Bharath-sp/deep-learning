@@ -36,5 +36,6 @@ image::.\images\compare_paths.png[align='center']
 
 To make the path more visible, here the learning rate is set to a large value.
 
+What every optimizer other than pure SGD does is to take the gradient and apply some statistical analysis to create a better gradient. In the simplest case, momentum, the gradient is averaged with previous gradients. In RMSProp, the variance of the gradient across batches is measured - the noisier it is, the less RMSProp "trusts" the gradient and so the gradient is reduced (divided by the stdev of the gradient for that weight). Adam does both.
 
 

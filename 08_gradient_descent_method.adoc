@@ -130,8 +130,10 @@ Say our objective (or loss) function is
 
 [stem]
 ++++
-\min_{w_1, w_2} L(w_1, w_2) = \min_{w_1, w_2} (w_1-2)^2 + (w_2 -3)^2
+\min_{w_1, w_2} L(w_1, w_2) = \min_{w_1, w_2} (w_1-2)^2 + (w_2 -3)^2 = \min_{\mathbf{w}} \|\mathbf{w}- \mathbf{c}\|^2 
 ++++
+
+where stem:[\mathbf{c} = (2,3)^\top] and stem:[\mathbf{w} = (w_1, w_2)^\top].
 
 . Let stem:[(w_{1,t}, w_{2,t}) = (3,2)] be the initial value for the parameters.
 . Find the gradient at the point.
@@ -178,14 +180,27 @@ There will be many points in weight space at which the gradient will be 0, i.e, 
 For a successful application of neural networks, it may not be necessary to find the global minimum, but it may be necessary to compare several local minima in order to find a sufficiently good solution.
 
 == Types of Gradient Descent ==
-In practice, we will have a dataset with stem:[N] data points. We have target stem:[y] and predicted stem:[\hat{y}] which is obtained by using randomly initialized parameter values. For given stem:[y] and stem:[\hat{y}], we compute the empirical loss function value.
+In practice, we will have a dataset with stem:[N] data points. We have target stem:[t] and predicted stem:[y] which is obtained by using randomly initialized parameter values. For given stem:[t] and stem:[y], we compute the empirical loss function value.
 
 * In regression analysis, the MSE is used as the loss function.
 +
 [stem]
 ++++
-L(\mathbf{w},b) = \frac{1}{N} \sum_{n=1}^N (t_n - y_n)^2
+L(\mathbf{w},b) = \frac{1}{N} \sum_{n=1}^N (t_n - y_n)^2 = \frac{1}{N} \sum_{n=1}^N (t_n - \mathbf{w}^\top \mathbf{x}_n - b)^2
 ++++
++
+Assume the input is one-dimensional stem:[x]. For a single point, say stem:[(x_n, t_n) = (2,4)], the individual loss is given by stem:[\frac{1}{N}(2w-b-4)^2]. This is a convex function. Each data point contributes a distinct quadratic function of the same variables. The total MSE loss is the sum of all these quadratic functions which again results in a single quadratic function in the parameters stem:[w] and also in stem:[b].
++
+NOTE: The functional form of the aggregate loss depends on the form of the individual terms. But the aggregate loss function will still be a single function over the parameter space.
++
+This can also be viewed in the matrix form as:
++
+[stem]
+++++
+L(\mathbf{w},b) = \frac{1}{N} \|\mathbf{t} - \mathbf{Xw} - b \|^2
+++++
++
+where stem:[\mathbf{t} \in \mathbb{R}^N,  \mathbf{X} \in \mathbb{R}^{N \times d}, \mathbf{w} \in \mathbb{R}^d]. This is clearly a quadratic form in stem:[\mathbf{w}] and stem:[b].
 
 * In binary classification, binary cross-entropy (BCE) is used.
 +
@@ -193,6 +208,8 @@ L(\mathbf{w},b) = \frac{1}{N} \sum_{n=1}^N (t_n - y_n)^2
 ++++
 L(\mathbf{w},b) = - \frac{1}{N} \sum_{n=1}^N [t_n \log(y_n) + (1-t_n) \log (1-y_n)]
 ++++
++
+In this case, the individual loss terms are non-linear and convex. The aggregate loss is a not a simple function, but still non-linear and convex. Convexity is preserved under summation.
 
 * In multiclass classification, cross-entropy (CE) is used.
 +

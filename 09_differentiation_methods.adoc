@@ -4,19 +4,6 @@
 :eqnums:
 :toc:
 
-== Introduction ==
-Finding the gradient of the loss requires a differentiation algorithm. Since the expression of loss stem:[L] varies depending on the neural network's structure, an algorithm that automatically differentiates it is required.
-
-There are three algorithms/methods that help us find the derivatives:
-
-. Symbolic differentiation: Find the derivatives by directly manipulating the mathematical expression. This method can find the exact derivative, but depending on the shape of stem:[L], the computation becomes very complex and time-consuming. It is not suitable for deep learning.
-
-. Numerical differentiation: This method finds the approximate derivatives of a function.
-. Automatic differentiation: This method finds the exact derivatives of a function. There are two methods of automatic differentiation: 
-
-.. Forward derivative trace: Computes the partial derivatives during the forward pass operation. It is slow, and not suitable for gradient-based optimization.
-.. Backward derivative trace: Computes the partial derivatives during the backward pass. This mode is faster than forward mode. The backward derivative trace is used to train the neural networks.
-
 == A Primer on Calculus ==
 The core concept used in the backpropagation algorithm is the chain rule of differential calculus.
 
@@ -60,21 +47,33 @@ The change in stem:[y] for a small change in stem:[x] can be given by
 \end{align*}
 ++++
 
-== Example ==
+== Differentiation Methods ==
+Finding the gradient of the loss requires a differentiation algorithm. There are three algorithms/methods that help us find the derivatives:
+
+. Symbolic differentiation
+. Numerical differentiation
+. Automatic differentiation
+
+Let's see these methods with an example.
+
 Let stem:[y=f(x_1, x_2) = \log x_1 + x_1x_2 - sin(x_2)]. Find stem:[\frac{\partial f}{\partial x_1}] and stem:[\frac{\partial f}{\partial x_2}] at stem:[(x_1, x_2) = (2,5)].
 
-There are three methods that help us find these partial derivatives.
+There are three methods that help us find these derivatives.
 
 === Symbolic Differentiation ===
-We know that
+Symbolic differentiation finds the derivatives by directly manipulating the mathematical expression. It treats functions as expressions, and applies algebraic rules (e.g., chain rule, product rule) to manipulate those expressions into new symbolic derivatives.
+
+This method can find the exact derivative, but depending on the shape of stem:[L], the computation becomes very complex and time-consuming. For deeply nested function compositions (like in deep networks), this leads to exponential growth in expression size. They aren't designed for efficient evaluation (no reuse of intermediate computations) - they are for algebraic manipulation.
+
+For this example
 
 * stem:[\frac{\partial f}{\partial x_1} = \frac{1}{x_1} + x_2]. At stem:[(2,5)], the value of the derivative is 5.5.
 * stem:[\frac{\partial f}{\partial x_2} = x_1 - cos(x_2)]. At stem:[(2,5)], the value of the derivative is 1.716.
 
 === Automatic Differentiation ===
-Automatic differentiation allows us to obtain the accurate gradients of the loss with respect to each parameter in neural networks.
+Automatic differentiation allows us to obtain the accurate gradients of the loss with respect to each parameter in neural networks. There are two methods of automatic differentiation: 
 
-*Forward Derivative Trace:* To carry out this method, let's look at the computational graph representing the evaluation of the given function:
+*Forward Mode AD:* Computes the partial derivatives during the forward pass operation. It is slow, and not suitable for gradient-based optimization. To carry out this method, let's look at the computational graph representing the evaluation of the given function:
 
 image::.\images\frwd_derivative_trace.png[align='center', 500, 300]
 
@@ -97,9 +96,9 @@ Define stem:[\frac{\partial v_i}{\partial x_1} = \dot{v_i}]. Then
 
 This is the same as the result of symbolic differentiation. But this method is time consuming because it requires the forward derivative trace for each variable stem:[x_i] separately. An improvement over this problem is the backward derivative trace method.
 
-*Backward Derivative Trace:*
+*Reverse Mode AD:*
 
-This method propagates derivatives backward from a given output.
+Computes the partial derivatives during the backward pass, i.e., propagates derivatives backward from the output. This mode is faster than forward mode. This mode is used to train the neural networks.
 
 image::.\images\backward_trace.png[align='center', 500, 300]
 
@@ -135,7 +134,7 @@ image::.\images\gradient_flow.png[align='center', 400, 300]
 stem:[\frac{\partial g}{\partial x}] is called the local gradient because it is computed at this node using the relation between stem:[g] and stem:[x].
 
 === Numerical Differentiation ===
-Numerical differentiation allows us to obtain approximate gradients of the loss with respect to each parameter. Neural networks can be trained roughly using numerical differentiation, without using error backpropagation. Instead of finding the exact gradient, we can find an approximate gradient and use gradient descent to adjust the parameters.
+Numerical Differentiation finds the approximate derivatives of a function. It allows us to obtain approximate gradients of the loss with respect to each parameter. Neural networks can be trained roughly using numerical differentiation, without using error backpropagation. Instead of finding the exact gradient, we can find an approximate gradient and use gradient descent to adjust the parameters.
 
 * *Forward difference approximation:*
 +

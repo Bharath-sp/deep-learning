@@ -1,0 +1,62 @@
+= WGAN with Gradient Penalty =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Problem with Weight Clipping ==
+WGAN uses weight clipping to enforce a 1-Lipschitz constraint on the Critic, which can lead to undesired behavior. Weight clipping is a terrible way to enforce a 1-Lipschitz constraint. If the clipping parameter is large, then it can take a long time for any weights to reach their limit, thereby making it harder to train the critic till optimality.
+
+To improve this problem, an alternative to clipping has been proposed. In this method, instead of clipping weights, we *penalize the norm of gradient of the critic with respect to its input*. This method performs better than standard WGAN and enables stable training with almost no hyperparameter tuning.
+
+== Objective of WGAN-GP ==
+The objective function of WGAN is
+
+[stem]
+++++
+\begin{align*}
+& \min_{w_G} \max_{-c \leq w_D \leq c} \mathbb{E}_{\mathbf{x} \sim p_r}[D(\mathbf{x})] - \mathbb{E}_{\mathbf{z} \sim p_z}[D(G(\mathbf{z}))] ] \\
+
+& \min_{w_G} \max_{-c \leq w_D \leq c} \mathbb{E}_{\mathbf{x} \sim p_r}[D(\mathbf{x})] - \mathbb{E}_{\tilde{\mathbf{x}} \sim p_g}[D(\tilde{\mathbf{x}})] ]  && \left( G(\mathbf{z}) = \tilde{\mathbf{x}} \right)
+\end{align*}
+++++
+
+The objective function of WGAN with gradient penalty is
+
+[stem]
+++++
+\begin{align*}
+& \min_{w_G} \max_{w_D} \left[ \mathbb{E}_{\mathbf{x} \sim p_r}\left[D\left(\mathbf{x}\right)\right] -
+
+\mathbb{E}_{\tilde{\mathbf{x}} \sim p_{g}}\left[D\left(\tilde{\mathbf{x}}\right)\right]
+
+- \lambda\mathbb{E}_{\mathbf{\hat{x}} \sim p_{\hat{\mathbf{x}}}} \left[\left(||\nabla_{\hat{\mathbf{x}}}D\left(\mathbf{\hat{x}}\right)||_{2}-1\right)^{2}\right] \right] \\
+
+& = \min_{w_G} \min_{w_D} \left[
+\mathbb{E}_{\tilde{\mathbf{x}} \sim p_{g}}\left[D\left(\tilde{\mathbf{x}}\right)\right] - \mathbb{E}_{\mathbf{x} \sim p_r}\left[D\left(\mathbf{x}\right)\right]
+
++ \lambda\mathbb{E}_{\mathbf{\hat{x}} \sim p_{\hat{\mathbf{x}}}} \left[\left(||\nabla_{\hat{\mathbf{x}}}D\left(\mathbf{\hat{x}}\right)||_{2}-1\right)^{2}\right] \right] 
+
+\end{align*}
+++++
+
+where stem:[\hat{\mathbf{x}}] is a random point sampled uniformly along straight lines between real stem:[\mathbf{x}] and generated sample stem:[\tilde{\mathbf{x}}], given by stem:[\hat{\mathbf{x}} = \epsilon \mathbf{x} + (1-\epsilon) \tilde{\mathbf{x}}] with stem:[\epsilon \sim \mathcal{U}(0,1)]. WGAN-GP penalizes deviations of the gradient norm from 1 at interpolated points, enforcing the Lipschitz condition.
+
+== WGAN-GP Algorithm ==
+
+.WGAN-GP training algorithm
+image::.\images\wgan_gp_01.png[align='left', 600, 400]
+
+where stem:[\lambda] is the gradient penalty coefficient. The more the L2 norm of the gradient deviates from 1, the larger the penalty applied.
+
+image::.\images\wgan_gp_02.png[align='left', 700, 400]
+
+
+
+
+
+
+
+
+
+

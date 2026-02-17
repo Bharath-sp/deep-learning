@@ -1,0 +1,248 @@
+= Wasserstein GAN =
+:doctype: book
+:stem: latexmath
+:eqnums:
+:toc:
+
+== Linear Programming ==
+Suppose we have two discrete distributions stem:[p_r] and stem:[p_g]. The support of stem:[p_r] is stem:[x\in \{0,1\}] with probabilities stem:[[0.3, 0.7\]] respectively, and the support of stem:[p_g] is stem:[y \in \{0,1\}] with probabilities stem:[[0.6, 0.4\]] respectively. We want to measure the Wasserstein distance between these two distributions. We make several plans to move the pile of dirt in stem:[p_r] to the holes in stem:[p_g] and find the best plan among them.
+
+.Different transport plans to move the pile of dirt in stem:[p_r] to the holes in stem:[p_g]
+image::.\images\wgan_04.png[align='center', 600, 400]
+
+.A general transport plan to move the pile of dirt in stem:[p_r] to the holes in stem:[p_g]
+image::.\images\wgan_05.png[align='center', 300, 300]
+
+Let's vectorize the matrix stem:[\gamma] and stem:[d] as:
+
+* stem:[\gamma(x,y) = [r_{0,0}, r_{0,1}, r_{1,0}, r_{1,1} \]] where each component denotes the amount of dirt to be moved from bin stem:[x] to bin stem:[y].
+* stem:[d(x,y) = [d_{0,0}, d_{0,1}, d_{1,0}, d_{1,1} \]] where each component denotes the absolute distance between bin stem:[x] and bin stem:[y].
+* stem:[p_r(0)] and stem:[p_r(1)] be the marginal probabilities of stem:[p_r], and stem:[p_g(0)] and stem:[p_g(1)] be the marginal probabilities of stem:[p_g].
+
+Wasserstein-1 distance is defined as:
+
+[stem]
+++++
+\begin{align*}
+W_1(p_r, p_g) & = \inf_{\gamma \in \pi} \,\, \mathbb{E}_{(x,y) \sim \gamma}[d(x,y)]\\
+& = \sum_{x,y} \gamma^*(x,y) \odot d(x,y) \\
+\end{align*}
+++++
+
+Since this is an optimization problem, the WD can be written as
+
+[stem]
+++++
+\begin{align*}
+\min & \,\,\,  r_{0,0} \cdot d_{0,0} + r_{0,1} \cdot d_{0,1} + r_{1,0} \cdot d_{1,0} + r_{1,1} \cdot d_{1,1} \\
+\text{ subject to } & r_{0,0} + r_{1,0} = p_r(0) \\
+& r_{0,1} + r_{1,1} = p_r(1) \\
+& r_{0,0} + r_{0,1} = p_g(0) \\
+& r_{1,0} + r_{1,1} = p_g(1) \\
+& r_{0,0}, r_{0,1}, r_{1,0}, r_{1,1} \geq 0 \\
+\end{align*}
+++++
+
+This is a typical linear programming problem. So it can be expressed in the standard form of linear programming as follows:
+
+[stem]
+++++
+\begin{align*}
+\min_{\mathbf{x}} & \,\,\,  z = \mathbf{c}^\top \mathbf{x} \\
+\text{ subject to } & \mathbf{Ax} = \mathbf{b} \\
+& \mathbf{x} \geq 0
+\end{align*}
+++++
+
+where
+
+[stem]
+++++
+\mathbf{c} = \begin{bmatrix} d_{0,0} \\ d_{0,1} \\ d_{1,0}\\ d_{1,1} \end{bmatrix} \, ,
+\mathbf{x} = \begin{bmatrix} r_{0,0} \\ r_{0,1} \\ r_{1,0} \\ r_{1,1} \end{bmatrix} \, , 
+\mathbf{A} = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 1 & 0 & 0 \\ 0 & 0 & 1 & 1 \end{bmatrix}, 
+\mathbf{b} = \begin{bmatrix} p_r(0) \\ p_r(1) \\ p_g(0) \\ p_g(1) \end{bmatrix}
+++++
+
+NOTE: The vectors stem:[\mathbf{c}] and stem:[\mathbf{b}] are assumed to be known.
+
+This is the LP for Wasserstein-1 distance in its primal form. Our goal is not to solve this LP problem to find the optimal stem:[\gamma] and obtain the exact Wasserstein distance. Instead, our goal is to train a GAN model using this LP so that the WD is as small as possible.
+
+=== Kantorovich-Rubinstein Duality ===
+The dual problem for the above LP problem can be given as:
+
+[stem]
+++++
+\begin{align*}
+\max_{\mathbf{s}} & \,\,\,  \tilde{z} = \mathbf{b}^\top \mathbf{s} \\
+\text{ subject to } & \mathbf{A}^\top \mathbf{s} \leq \mathbf{c} \\
+\end{align*}
+++++
+
+where stem:[\mathbf{s} = [s_0, s_1, s_2, s_3\]^\top] and the components can be unrestricted in sign. Let's assume that the optimal solution of this dual problem is stem:[\mathbf{s}^* = [f_0, f_1, g_0, g_1\]^\top]. Then, the optimal value of the problem is
+
+[stem]
+++++
+\begin{align*}
+\tilde{z}^* & = [p_r(0), p_r(1), p_g(0), p_g(1)] [f_0, f_1, g_0, g_1]^\top \\
+& = f_0 \, p_r(0) + f_1 \, p_r(1) + g_0 \, p_g(0) + g_1 \, p_g(1) \\
+& = \mathbf{f}^\top \mathbf{p}_r + \mathbf{g}^\top \mathbf{p}_g \\
+& = \mathbb{E}_{x \sim P_r}[f(x)] + \mathbb{E}_{y \sim P_g}[g(y)]
+\end{align*}
+++++
+
+where
+
+[stem]
+++++
+\mathbf{f} = \begin{bmatrix} f_0 \\ f_1 \end{bmatrix} \, ,
+\mathbf{g} = \begin{bmatrix} g_0 \\ g_1 \end{bmatrix} \, , 
+\mathbf{p}_r = \begin{bmatrix} p_r(0) \\ p_r(1) \end{bmatrix} \, ,
+\mathbf{p}_g = \begin{bmatrix} p_g(0) \\ p_g(1) \end{bmatrix}
+++++
+
+Since stem:[p_r] and stem:[p_g] are probability distributions, the expression above is expressed using the expectation operator. The function stem:[f(x)] that gives stem:[f_0, f_1] for stem:[x\in \{0, 1\}] respectively and stem:[g(y)] that gives stem:[g_0, g_1] for stem:[y\in \{0, 1\}] respectively, are the optimal solutions to the dual form. But we are not trying to find these functions. Instead, we replace the functions stem:[f] and stem:[g] with a neural network called critic. And then, train this network to try to make stem:[\tilde{z}^*] as large as possible.
+
+Additionally, the constraint stem:[\mathbf{A}^\top \mathbf{s}^* \leq \mathbf{c}] of the dual form should also be applied to the neural network.
+
+[stem]
+++++
+\begin{align*}
+\begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 1 & 0 \\ 1 & 0 & 0 & 1 \\ 0 & 1 & 0 & 1 \end{bmatrix} \begin{bmatrix} f_0 \\ f_1 \\ g_0 \\ g_1 \end{bmatrix} & \leq \begin{bmatrix} d_{0,0} \\ d_{0,1} \\ d_{1,0}\\ d_{1,1} \end{bmatrix} \\
+\\
+f_0 + g_0 &\leq d_{0,0} \\
+f_1 + g_0 &\leq d_{0,1} \\
+f_0 + g_1 &\leq d_{1,0} \\
+f_1 + g_1 &\leq d_{1,1} \\
+\end{align*}
+++++
+
+In general, the constraints can be written as stem:[f(x) + g(y) \leq d(y,x) \,\, \forall x,y]. Since this is valid for all stem:[x,y], it should be valid for the case stem:[x=y] as well. If stem:[x=y], the distance stem:[d(x,y) = 0]. Then, the constraint becomes stem:[f(y) + g(y) \leq 0 \implies g(y) \leq -f(y)]. This implies that the function value stem:[g(y)] will be at most stem:[-f(y)]. So, imposing stem:[g(y) = -f(y)] will be the strongest constraint. We apply this strong constraint to our neural network.
+
+[stem]
+++++
+\begin{align*}
+\tilde{z}^* = \mathbb{E}_{x \sim p_r}[f(x)] - \mathbb{E}_{y \sim p_g}[f(y)]
+\end{align*}
+++++
+
+With constraint stem:[f(x) -f(y) \leq d(y,x)]. And we can also have stem:[f(y) -f(x) \leq d(x,y)]. As stem:[d(x,y) = d(y,x)], the constraint can be written as
+
+[stem]
+++++
+|f(x) -f(y)| \leq d(x,y) \implies f \in \text{Lip}_1
+++++
+
+So ultimately, the function stem:[f] should be a 1-Lipschitz continuous function. This means that the difference between the outputs stem:[f(x)] and stem:[f(y)] of the neural network should not be too large, that is, the slope of stem:[f] should be stem:[\leq 1] over the entire domain of stem:[f].
+
+== Objective of WGAN ==
+The dual problem for finding the Wasserstein-1 distance is
+
+[stem]
+++++
+\begin{align*}
+\max_{\mathbf{s}} & \,\,\,  \tilde{z} = \mathbf{b}^\top \mathbf{s} \\
+\text{ subject to } & \mathbf{A}^\top \mathbf{s} \leq \mathbf{c} \\
+\end{align*}
+++++
+
+The problem can be reformulated as
+
+[stem]
+++++
+\begin{align*}
+\max_{f} & \,\,\, \tilde{z} = \mathbb{E}_{x \sim p_r}[f(x)] - \mathbb{E}_{y \sim p_g}[f(y)] \\
+\text{ subject to } & |f(x) -f(y)| \leq |x-y|
+\end{align*}
+++++
+
+Extending it to high-dimensional distributions, we know that the Wasserstein-1 distance betwen the distributions is defined as
+
+[stem]
+++++
+\begin{align*}
+WD_1(p_r, p_g) & = \inf_{\gamma \in \pi} \,\, \mathbb{E}_{(\mathbf{x}, \mathbf{y}) \sim \gamma}[\| \mathbf{x} - \mathbf{y}\|]
+\end{align*}
+++++
+
+By the Kantorovich-Rubinstein Duality, the definition of stem:[WD_1] is
+
+[stem]
+++++
+\begin{align*}
+WD_1(p_r, p_g) & = \sup_{f \in \text{Lip}_1} \,\, \mathbb{E}_{\mathbf{x} \sim p_r}[f(\mathbf{x})] - \mathbb{E}_{\mathbf{y} \sim p_g}[f(\mathbf{y})] \\
+\end{align*}
+++++
+
+Here stem:[f] is a neural network called Critic. If the weights of the network are small, the output of the network for any arbitrary input will be small. And the absolute difference between the network outputs for any two inputs stem:[\mathbf{x}_1] and stem:[\mathbf{x}_2] will also be small. 
+
+Thus, the 1-Lipschitz constraint is roughly applied on stem:[f] by limiting the size of the network parameter to be between stem:[-c] and stem:[+c] for all stem:[w], where stem:[c] is a hyperparameter called as the clipping parameter.
+
+
+[stem]
+++++
+\begin{align*}
+WD_1(p_r, p_g) & = \max_{-c \leq w \leq c} \,\, \mathbb{E}_{\mathbf{x} \sim p_r}[f_w(\mathbf{x})] - \mathbb{E}_{\mathbf{y} \sim p_g}[f_w(\mathbf{y})] \\
+
+& = \max_{-c \leq w \leq c} \,\, \mathbb{E}_{\mathbf{x} \sim p_r}[f_w(\mathbf{x})] - \mathbb{E}_{\mathbf{z} \sim p_z}[f_w(G(\mathbf{z}))] \\
+
+& = \max_{-c \leq w_D \leq c} \,\, \mathbb{E}_{\mathbf{x} \sim p_r}[D(\mathbf{x})] - \mathbb{E}_{\mathbf{z} \sim p_z}[D(G(\mathbf{z}))] \\
+\end{align*}
+++++
+
+where stem:[D] is the discriminator network (called "critic" in WGAN) and stem:[G] is the generator.
+
+The objective function of the standard GAN is
+
+[stem]
+++++
+\min_{w_G} \max_{w_D} \mathbb{E}_{\mathbf{x} \sim p_r}[\log D(\mathbf{x})] + \mathbb{E}_{\mathbf{z} \sim p_z}[\log (1- D (G(\mathbf{z})))]
+++++
+
+The objective function of the Wasserstein GAN is
+
+[stem]
+++++
+\min_{w_G} \max_{-c \leq w_D \leq c} \mathbb{E}_{\mathbf{x} \sim p_r}[D(\mathbf{x})] - \mathbb{E}_{\mathbf{z} \sim p_z}[D(G(\mathbf{z}))] ]
+++++
+
+The discriminator is trained to estimate the Wasserstein-1 distance between stem:[p_r] and stem:[p_g]. The generator is trained to minimize this distance to make stem:[p_g] similar to stem:[p_r].
+
+IMPORTANT: The discriminator in a standard GAN acts as a classifier, whereas the discriminator in WGAN acts as a regressor.
+
+The parameters of the critic are updated by gradient ascent
+
+[stem]
+++++
+\mathbf{w}_D \leftarrow \mathbf{w}_D  + \eta \frac{\partial }{\partial \mathbf{w}_D} \left( \mathbb{E}_{\mathbf{x} \sim p_r}[D(\mathbf{x})] - \mathbb{E}_{\mathbf{z} \sim p_z}[D(G(\mathbf{z}))] ] \right)
+++++
+
+And the parameters of the generator are updated by gradient descent
+
+[stem]
+++++
+\mathbf{w}_G \leftarrow \mathbf{w}_G  - \eta \frac{\partial }{\partial \mathbf{w}_G} \left( - \mathbb{E}_{\mathbf{z} \sim p_z}[D(G(\mathbf{z}))] ] \right)
+++++
+
+== WGAN Algorithm ==
+
+.WGAN training algorithm
+image::.\images\wgan_06_algorithm.png[align='left']
+
+We say that the algorithm is converged when the discriminator loss and the generator loss are close to 0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -133,7 +133,7 @@ So the author of the paper proposed a heuristic, but very effective alternative.
 +
 The non-saturating loss provides larger gradients when stem:[D^* (G(\mathbf{z}))] is small. So the generator learns faster and avoids early stagnation.
 +
-So the discriminator loss for the mini-batch is computed as:
+So the generator loss for the mini-batch is computed as:
 +
 [stem]
 ++++
